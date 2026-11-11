@@ -6,62 +6,100 @@
   <meta name="theme-color" content="#061311">
   <title>숲 속의 요정</title>
   <style>
-    * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-    body { color: #cdd9c6; font-family: '바탕', Batang, Georgia, serif; }
-    canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: url('leaf-cursor.svg') 5 4, auto; }
-    .panel { position: fixed; top: 0; width: 100%; padding: 18px 24px 14px; background: linear-gradient(#050a09f5, #050a09b0, transparent); }
-    .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; padding-bottom: 7px; }
-    h1 { position: relative; margin: 0 22px 0 0; padding: 7px 0 10px; font-size: 27px; font-weight: 400; letter-spacing: .22em; flex-shrink: 0; color: #dce8cc; text-shadow: 0 0 20px #c0d5a330, 0 2px 8px #000; }
-    h1::after { content: ''; position: absolute; bottom: 0; left: 2px; width: 100%; height: 1px; background: linear-gradient(90deg, #a7be784d, transparent); }
-    .upload { display: flex; align-items: center; gap: 7px; font: 11px '맑은 고딕', sans-serif; color: #9dae9f; }
-    input[type=file] { width: 190px; font: 11px '맑은 고딕', sans-serif; color: #91a296; }
-    input::file-selector-button { background: #14231c; color: #cdd9c6; border: 1px solid #344437; border-radius: 2px; padding: 7px; margin-right: 6px; cursor: pointer; }
-    .description { margin: 8px 0 0; font-size: 12px; color: #93a397; white-space: nowrap; overflow-x: auto; line-height: 1.8; }
-    #status { position: fixed; left: 24px; bottom: 174px; font: 12px '맑은 고딕', sans-serif; color: #a5b5a5; max-width: min(420px, 90vw); pointer-events: none; }
-    .controls { position: fixed; right: 4vw; bottom: 4vh; display: flex; gap: 8px; }
-    button { background: #0c201c88; color: #a5b5a5; border: 1px solid #9bbaa02b; padding: 10px 14px; border-radius: 2px; font: 11px '맑은 고딕', sans-serif; cursor: pointer; }
-    button:hover, button:focus-visible { color: #e0ebcb; border-color: #aabd8d; outline: none; }
-    button:disabled { opacity: .35; cursor: default; }
-    .toolbar button { flex-shrink: 0; }
-    .camera-preview { position: fixed; bottom: 24px; left: 24px; margin: 0; padding: 14px; display: flex; align-items: center; gap: 18px; max-width: calc(100vw - 48px); background: #06100de8; border: 1px solid #aabe7b26; border-radius: 12px; }
-    .camera-orb { position: relative; display: grid; place-items: center; width: 106px; height: 106px; border: 1px solid #aabe7b50; border-radius: 50%; overflow: hidden; background: #09120ff0; box-shadow: 0 0 0 6px #b2c99405, 0 0 28px #b2c9940c; }
-    .camera-orb video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); visibility: hidden; }
-    .camera-orb.live video { visibility: visible; }
-    .camera-orb span { position: absolute; color: #8f9f88; font: 11px '바탕', Batang, serif; letter-spacing: .12em; pointer-events: none; }
-    .camera-orb.live span { display: none; }
-    .camera-orb { flex-shrink: 0; }
-    .camera-preview figcaption { min-width: 0; width: 205px; color: #8fa086; font: 10px/1.7 '맑은 고딕', sans-serif; letter-spacing: .06em; }
-    #face-status { margin: 0 0 14px; }
-    .zoom-label { display: flex; justify-content: space-between; gap: 8px; color: #bccbb1; }
-    #face-zoom { display: block; width: 100%; margin: 10px 0 5px; accent-color: #b1c58f; cursor: pointer; }
-    #face-zoom:focus-visible { outline: 1px solid #c8daa3; outline-offset: 4px; }
-    .zoom-limits { display: flex; justify-content: space-between; color: #788c75; }
-    @media(max-width:600px) { .panel { padding: 12px; } h1 { font-size: 20px; } }
-    @media(max-width:700px) { .camera-preview { left: 12px; bottom: 68px; max-width: calc(100vw - 24px); padding: 12px; gap: 12px; } .camera-orb { width: 78px; height: 78px; } .controls { right: 12px; bottom: 14px; } #status { left: 12px; bottom: 210px; } }
+    @font-face { font-family: Galmuri; src: url('assets/fonts/Galmuri11.woff2') format('woff2'); font-display: swap; }
+    @font-face { font-family: Galmuri; src: url('assets/fonts/Galmuri11-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+    :root { color-scheme: dark; --ink:#141d38; --panel:#1d2d46; --edge:#7eabc0; --cream:#fff1b1; --mint:#9ee1c4; }
+    * { box-sizing:border-box; }
+    html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#080e20; }
+    body { color:#e1eced; font:12px/1.7 Galmuri,'DotumChe',monospace; }
+    canvas { display:block; width:100%; height:100%; touch-action:none; image-rendering:pixelated; cursor:url('leaf-cursor.svg') 4 4,crosshair; }
+    .panel { position:fixed; top:24px; left:28px; right:28px; pointer-events:none; }
+    .eyebrow { margin:0 0 8px; font-size:10px; color:var(--mint); letter-spacing:2px; text-shadow:2px 2px var(--ink); }
+    .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; pointer-events:auto; }
+    h1 { margin:0 auto 0 0; color:#ffe58d; font-size:32px; line-height:1.5; letter-spacing:2px; font-weight:700; text-shadow:3px 3px #ab535b,6px 6px #111c35; }
+    button,summary,input::file-selector-button { border:2px solid var(--ink); border-radius:0; background:#e8d291; color:#27324a; box-shadow:inset 2px 2px #fff3bf,inset -2px -2px #bd9e68,3px 3px 0 #111a30; padding:10px 12px; font:11px/1.5 Galmuri,monospace; cursor:pointer; }
+    button:hover,summary:hover,input::file-selector-button:hover { background:#fff0b5; }
+    button:active { transform:translate(2px,2px); box-shadow:inset 2px 2px #bd9e68; }
+    button:focus-visible,summary:focus-visible,input:focus-visible { outline:3px solid #92e8d3; outline-offset:4px; }
+    button:disabled { opacity:.5; cursor:default; }
+    #camera-on { background:#b2dbc1; box-shadow:inset 2px 2px #e1f5d8,inset -2px -2px #71a697,3px 3px #111a30; }
+    .description { display:inline-block; margin:14px 0 0; padding:7px 10px; background:#121d35e6; border-left:3px solid var(--mint); color:#d7e5e4; font-size:11px; max-width:100%; }
+    #gift-count { display:inline-block; margin-left:12px; color:#ffe29a; white-space:nowrap; }
+    .settings { position:relative; }
+    summary { list-style:none; white-space:nowrap; }
+    summary::-webkit-details-marker { display:none; }
+    summary::before { content:'+ '; }
+    details[open] summary::before { content:'− '; }
+    .settings-content { position:absolute; right:0; top:calc(100% + 10px); display:grid; gap:12px; width:290px; padding:16px; background:var(--panel); border:2px solid var(--edge); box-shadow:4px 4px var(--ink),inset 0 0 0 3px #101b31; }
+    .upload { display:grid; gap:5px; color:var(--mint); font-size:11px; }
+    input[type=file] { width:100%; min-width:0; color:#c1d2dc; font:10px Galmuri,monospace; }
+    input::file-selector-button { padding:5px; margin-right:6px; font-size:10px; box-shadow:none; }
+    .camera-preview { position:fixed; bottom:24px; left:28px; margin:0; display:flex; align-items:center; gap:16px; padding:20px 16px 14px; max-width:calc(100vw - 56px); background:#192941f5; border:2px solid #8bb6c5; box-shadow:4px 4px #0a152b,inset 0 0 0 3px #101a32; }
+    .camera-preview::before { content:'PLAYER 01 / RUDOLPH'; position:absolute; top:-10px; left:12px; padding:0 7px; color:#f8e6a7; background:#192941; font-size:10px; letter-spacing:1px; }
+    .camera-orb { position:relative; display:grid; place-items:center; width:84px; height:84px; flex-shrink:0; border:2px solid #5b8399; background:#101b32; overflow:hidden; box-shadow:inset 0 0 0 3px #0a1428; }
+    .camera-orb video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); visibility:hidden; image-rendering:pixelated; }
+    .camera-orb.live video { visibility:visible; }
+    .camera-orb span { color:#8aafbf; font-size:10px; text-align:center; }
+    .camera-orb.live span { display:none; }
+    .camera-preview figcaption { min-width:0; width:210px; font-size:10px; }
+    #face-status { margin:0 0 10px; color:#c3d6df; line-height:1.8; }
+    .zoom-label { display:flex; justify-content:space-between; gap:8px; color:#f9e7aa; }
+    #face-zoom { display:block; width:100%; margin:10px 0 6px; accent-color:#9ddabc; cursor:pointer; }
+    #face-zoom { appearance:none; -webkit-appearance:none; height:10px; border:2px solid #101a32; background:#4b6c80; border-radius:0; }
+    #face-zoom::-webkit-slider-thumb { appearance:none; -webkit-appearance:none; width:14px; height:16px; border:2px solid #14233c; border-radius:0; background:#b0e1bd; box-shadow:inset 2px 2px #ecf2cd; }
+    #face-zoom::-moz-range-thumb { width:12px; height:14px; border:2px solid #14233c; border-radius:0; background:#b0e1bd; }
+    .zoom-limits { display:flex; justify-content:space-between; color:#89aabc; font-size:9px; }
+    #status { position:fixed; left:28px; bottom:182px; color:#ffe6a6; max-width:min(440px,85vw); pointer-events:none; background:#13223be8; padding:5px 8px; font-size:11px; }
+    #status:empty { display:none; }
+    .controls { position:fixed; right:28px; bottom:28px; display:flex; gap:10px; }
+    .scene-credit { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); color:#afcfdb; text-align:center; font-size:9px; letter-spacing:1px; text-shadow:2px 2px #111b30; pointer-events:none; }
+    .scene-credit strong { display:block; color:#ffe4a5; font-weight:400; font-size:11px; margin-bottom:4px; }
+    @media(max-width:1000px) { .scene-credit { display:none; } h1 { font-size:26px; } }
+    @media(max-width:650px) {
+      .panel { top:14px; left:14px; right:14px; } .eyebrow { font-size:8px; margin-bottom:6px; letter-spacing:1px; }
+      h1 { width:100%; font-size:26px; margin:0 0 5px; } .toolbar { gap:8px; }
+      button,summary { font-size:10px; padding:8px 10px; } .description { font-size:10px; margin-top:10px; line-height:1.8; }
+      .camera-preview { left:14px; right:14px; bottom:70px; padding:18px 12px 10px; gap:12px; max-width:none; }
+      .camera-orb { width:64px; height:70px; } .camera-preview figcaption { width:auto; flex:1; }
+      #face-status { margin-bottom:6px; } .controls { right:14px; bottom:16px; } #status { left:14px; bottom:220px; }
+      .settings-content { right:auto; left:0; transform:translateX(-164px); width:290px; }
+    }
+    @media(prefers-reduced-motion:reduce) { button:active { transform:none; } }
   </style>
 </head>
 <body>
-  <canvas id="forest" aria-label="반딧불이가 떠다니는 밤의 숲. 마우스나 손가락을 움직이면 요정과 작은 빛이 따라옵니다."></canvas>
+  <canvas id="forest" aria-label="눈 덮인 전나무와 잎 없는 겨울나무, 높낮이가 다른 얼음 지형이 겹쳐진 픽셀 아트 숲. 마우스나 손가락을 움직이면 요정과 작은 빛이 따라옵니다."></canvas>
   <header class="panel">
-    <div class="toolbar"><h1>숲 속의 요정</h1><button id="camera-on" type="button">웹캠 켜기</button><button id="camera-off" type="button" disabled>웹캠 끄기</button><label class="upload">숲 이미지 <input id="forest-file" type="file" accept="image/*"></label><label class="upload">불빛 이미지 <input id="light-file" type="file" accept="image/*"></label></div>
-    <p class="description">마우스를 움직이면 요정이 따라와요! 멈추면 요정이 서서히 어둠 속으로 사라집니다.</p>
+    <p class="eyebrow">WINTER FOREST · FROZEN WOODS</p>
+    <div class="toolbar">
+      <h1>숲 속의 요정</h1>
+      <button id="camera-on" type="button">웹캠 켜기</button><button id="camera-off" type="button" disabled>웹캠 끄기</button>
+      <details class="settings"><summary>이미지 바꾸기</summary><div class="settings-content">
+        <label class="upload">숲 배경 <input id="forest-file" type="file" accept="image/*"></label>
+        <label class="upload">요정 불빛 <input id="light-file" type="file" accept="image/*"></label>
+      </div></details>
+    </div>
+    <p class="description">선물 가까이에서 클릭해 냠! 웹캠을 켰다면 입을 크게 벌려보세요. <span id="gift-count" aria-live="polite">선물 0 / 0</span></p>
   </header>
   <figure class="camera-preview" aria-label="웹캠 미리보기">
-    <div class="camera-orb"><video id="camera-video" autoplay muted playsinline aria-label="실시간 웹캠 영상"></video><span>작은 만남</span></div>
+    <div class="camera-orb"><video id="camera-video" autoplay muted playsinline aria-label="실시간 웹캠 영상"></video><span>CAMERA<br>OFF</span></div>
     <figcaption>
-      <p id="face-status" role="status" aria-live="polite">웹캠을 켜면 당신이 요정이 됩니다</p>
-      <label class="zoom-label" for="face-zoom">요정 얼굴 확대 <output id="zoom-value" for="face-zoom">1.0배</output></label>
-      <input id="face-zoom" type="range" min="0.8" max="3" step="0.1" value="1" aria-valuetext="1.0배">
-      <div class="zoom-limits" aria-hidden="true"><span>0.8배</span><span>3.0배</span></div>
+      <p id="face-status" role="status" aria-live="polite">웹캠을 켜면 내 눈과 입이 요정에게 나타나요</p>
+      <label class="zoom-label" for="face-zoom">눈·입 크기 <output id="zoom-value" for="face-zoom">1.0배</output></label>
+      <input id="face-zoom" type="range" min="0.8" max="1.5" step="0.1" value="1" aria-valuetext="1.0배">
+      <div class="zoom-limits" aria-hidden="true"><span>0.8배</span><span>1.5배</span></div>
     </figcaption>
   </figure>
   <p id="status" role="status" aria-live="polite"></p>
   <div class="controls"><button id="pause" type="button" aria-pressed="false">움직임 멈추기</button><button id="fullscreen" type="button">전체 화면</button></div>
+  <div class="scene-credit"><strong>FROZEN FOREST</strong>손짓으로 여는 AI 세계 · 이윤진</div>
   <script>
     'use strict';
     const canvas = document.querySelector('#forest');
-    const ctx = canvas.getContext('2d');
+    const screen = canvas.getContext('2d');
+    const scene = document.createElement('canvas');
+    const ctx = scene.getContext('2d');
+    const pixelSize = 2;
     const scenery = document.createElement('canvas');
     const bg = scenery.getContext('2d');
     let w, h, dpr, last = 0, time = 0, paused = false, frame;
@@ -69,18 +107,22 @@
     const pointer = { x: 0, y: 0, active: false, strength: 0 };
     const fairy = { x: 0, y: 0, walk: 0, step: 0, facing: 1 };
     const companions = [
-      { offsetX: -42, offsetY: -30, speed: .78 },
-      { offsetX: -68, offsetY: 26, speed: .65 },
-      { offsetX: -98, offsetY: -2, speed: .55 }
+      { offsetX: -86, offsetY: -38, speed: .78 },
+      { offsetX: -128, offsetY: 35, speed: .65 },
+      { offsetX: -174, offsetY: -8, speed: .55 }
     ].map(p => ({ ...p, x: 0, y: 0 }));
     const leaves = [];
+    const treeHooks = [], gifts = [];
+    const giftCount = document.querySelector('#gift-count');
+    let forestAsleep = true, biteTime = 0;
+    let mouthOpen = false, mouthArmed = true, mouthOpenedAt = 0;
     let lastMove = -Infinity, forestImage = null, lightImage = null, cameraStream = null, cameraRequest = 0;
     const video = document.querySelector('#camera-video'); video.muted = true; video.playsInline = true;
     const cameraOrb = document.querySelector('.camera-orb');
     const faceStatus = document.querySelector('#face-status');
     const zoomSlider = document.querySelector('#face-zoom');
     let faceZoom = 1;
-    let faceDetector = null, detectorPromise = null, faceCrop = null, faceFrame = null;
+    let faceLandmarker = null, detectorPromise = null, faceFeatures = null, faceFrame = null;
     let lastDetection = -Infinity, lastVideoTime = -1, faceSeen = -Infinity;
     const status = document.querySelector('#status');
     let seed = 4321;
@@ -88,184 +130,350 @@
     const flies = Array.from({ length: 65 }, () => ({ x: random(), y: .18 + random() * .76, phase: random() * Math.PI * 2, speed: .15 + random() * .3, size: .5 + random() * 1.4 }));
     const sparkles = Array.from({ length: 28 }, () => ({ angle: random() * Math.PI * 2, radius: 16 + random() * 55, phase: random() * Math.PI * 2, speed: .8 + random() * .8, size: .5 + random() * 1.1 }));
 
-    function glow(context, x, y, radius, color, alpha) {
-      const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0, `rgba(${color},${alpha})`);
-      gradient.addColorStop(.22, `rgba(${color},${alpha * .35})`);
-      gradient.addColorStop(1, `rgba(${color},0)`);
-      context.fillStyle = gradient;
-      context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    function block(context, x, y, width, height, color) {
+      context.fillStyle = color; context.fillRect(Math.round(x / 2) * 2, Math.round(y / 2) * 2, Math.ceil(width / 2) * 2, Math.ceil(height / 2) * 2);
     }
-
+    function glow(context, x, y, radius, color, alpha) {
+      context.save();
+      for (let ring = 4; ring > 0; ring--) {
+        const r = Math.round(radius * ring / 4 / 4) * 4;
+        block(context, x - r, y - r, r * 2, r * 2, `rgba(${color},${alpha * .035})`);
+      }
+      context.restore();
+    }
+    function pixelPine(x, y, height, festive = false) {
+      const u = Math.max(2, Math.round(height / 75 / 2) * 2);
+      block(bg,x-u*2,y-height*.35,u*4,height*.37,'#344e6a');
+      block(bg,x-u,y-height*.35,u,height*.36,'#557386');
+      for(let tier=0;tier<6;tier++) {
+        const top=y-height+tier*height*.13, half=height*(.07+tier*.027), rowHeight=height*.032;
+        for(let row=0;row<6;row++) {
+          const width=half*(.25+row*.16), yy=top+row*rowHeight;
+          block(bg,x-width,yy,width*2,rowHeight+2,row<3?'#568d85':row<5?'#366e72':'#285464');
+          if(row<4) {
+            const snowWidth=width*(row===0?1:.85);
+            block(bg,x-snowWidth,yy-2,snowWidth*2,Math.max(4,rowHeight*.65),row<2?'#f0f7ef':'#c7e5e6');
+            block(bg,x-snowWidth*.6,yy+rowHeight*.45,snowWidth*.3,4,'#e8f4ed');
+          }
+        }
+        if(festive&&tier>1)for(let j=0;j<4;j++)block(bg,x-half*.65+j*half*.43,top+rowHeight*5,4,4,j%2?'#ffdf98':'#e58c9d');
+      }
+      if(festive)pixelStar(bg,x,y-height-4,4,'#ffe9ab');
+    }
+    function bareWinterTree(x, base, height, width, trunk, snow, collectHooks = false) {
+      block(bg,x-width/2,base-height,width,height,trunk);
+      block(bg,x-width/2,base-height,width*.22,height,snow);
+      for(let fork=0;fork<5;fork++) {
+        const side=fork%2?1:-1, yy=base-height*(.25+fork*.14);
+        const reach=height*(.11+(fork%3)*.025), rise=height*.12;
+        for(let step=0;step<7;step++) {
+          const t=step/6,xx=x+side*reach*t,by=yy-rise*t;
+          const thick=Math.max(2,width*(.48-t*.28));
+          block(bg,xx-thick/2,by,thick+reach/6,thick+rise/6,trunk);
+          if(fork%2===0&&step>4)block(bg,xx-thick/2,by-2,thick+reach/7,2,snow);
+        }
+        const endX=x+side*reach,endY=yy-rise;
+        if(collectHooks && endX>w*.05 && endX<w*.95 && endY>h*.25 && endY<h*.65) treeHooks.push({x:endX,y:endY});
+        block(bg,endX,endY-height*.07,Math.max(2,width*.14),height*.07,trunk);
+      }
+      block(bg,x-width,base-6,width*2,8,trunk);
+    }
+    function iceTerrace(x, top, width, bottom, distant = false) {
+      const deep=distant?'#447b9e':'#193566',edge=distant?'#75b4c7':'#315d8c';
+      block(bg,x,top,width,bottom-top,deep);
+      block(bg,x,top,width,20,edge);
+      for(let px=x;px<x+width;px+=8) {
+        const xx=Math.min(px,x+width-2),span=Math.min(8,x+width-xx);
+        block(bg,xx,top-8-(Math.floor(px/8)%3===0?2:0),span,10,'#edf8f2');
+        block(bg,xx,top+2,span,4,Math.floor(px/8)%2?'#b7e1e7':'#d7eff0');
+        if(Math.floor(px/8)%4===0)block(bg,xx,top+6,2,10+random()*12,'#82c8dd');
+      }
+      const count=Math.floor(width*(bottom-top)/600);
+      for(let i=0;i<count;i++) {
+        const px=x+random()*width,py=top+12+random()*Math.max(1,bottom-top-14);
+        if(py<top+48||random()<.2)block(bg,px,py,2+random()*4,2,i%3?'#295180':'#3c80a3');
+      }
+      for(let py=top+8;py<bottom;py+=8) {
+        if(x>0)block(bg,x,py,2+random()*5,6,edge);
+        if(x+width<w)block(bg,x+width-4-random()*4,py,4+random()*4,6,edge);
+      }
+    }
+    function iceCrystal(x,y,scale=1) {
+      const u=Math.max(2,Math.round(scale*3/2)*2);
+      for(const [dx,height] of [[-4,6],[0,11],[4,8]]) {
+        block(bg,x+dx*u,y-height*u,u*3,height*u,'#2c87b2');
+        block(bg,x+(dx+1)*u,y-(height+1)*u,u,u,'#cbfaff');
+        block(bg,x+(dx+1)*u,y-height*u,u,height*u,'#76d9ed');
+        block(bg,x+dx*u,y-(height-2)*u,u,u*3,'#a2edee');
+      }
+      block(bg,x-u*6,y-u,u*13,u,'#edf8f2');
+    }
+    function snowShrub(x,y,scale=1) {
+      const u=Math.max(2,Math.round(scale*2/2)*2);
+      block(bg,x-u*5,y-u*3,u*10,u*3,'#a5d5df');
+      block(bg,x-u*3,y-u*5,u*6,u*4,'#d6eeee');
+      block(bg,x-u,y-u*7,u*2,u*6,'#f4faf2');
+      block(bg,x-u*5,y-u*4,u*3,u*2,'#eff8f2');
+      block(bg,x+u*2,y-u*4,u*3,u*2,'#eff8f2');
+    }
+    function pixelStar(context, x, y, size, color) {
+      block(context, x - size / 2, y - size * 1.5, size, size * 3, color);
+      block(context, x - size * 1.5, y - size / 2, size * 3, size, color);
+      block(context, x - size / 2, y - size / 2, size, size, '#fff8d0');
+    }
     function buildForest() {
-      seed = 9517;
-      const sky = bg.createLinearGradient(0, 0, 0, h);
-      sky.addColorStop(0, '#071315'); sky.addColorStop(.46, '#29433f'); sky.addColorStop(1, '#06110e');
-      bg.fillStyle = sky; bg.fillRect(0, 0, w, h);
-      glow(bg, w * .56, h * .4, h * .48, '128,161,143', .17);
-      // Overlapping mountain ridges recede into the lighter, misty valley.
-      const ridges = [
-        { color: '#2c4545', points: [[-.05,.43],[.10,.25],[.27,.39],[.40,.30],[.57,.47],[.74,.28],[.92,.38],[1.06,.24]] },
-        { color: '#203b38', points: [[-.05,.5],[.12,.36],[.31,.51],[.47,.43],[.61,.54],[.80,.38],[1.06,.48]] },
-        { color: '#19332e', points: [[-.05,.59],[.15,.46],[.36,.57],[.54,.60],[.77,.47],[1.06,.55]] }
-      ];
-      for (const ridge of ridges) {
-        bg.fillStyle = ridge.color; bg.beginPath(); bg.moveTo(-w * .05, h);
-        ridge.points.forEach(([x, y]) => bg.lineTo(x * w, y * h));
-        bg.lineTo(w * 1.06, h); bg.closePath(); bg.fill();
-      }
-      // Small conifers establish the far edge of the forest.
-      for (let i = 0; i < 76; i++) {
-        const x = i / 75 * w, base = h * (.62 + Math.sin(i * .16) * .025);
-        const height = h * (.025 + random() * .075), width = height * .22;
-        bg.fillStyle = i % 3 ? '#193a30' : '#204036';
-        bg.beginPath(); bg.moveTo(x, base - height);
-        for (let b = 0; b < 4; b++) {
-          const y = base - height + height * (b + 1) / 4;
-          bg.lineTo(x + width * (b + 1) / 4, y); bg.lineTo(x + width * b / 5, y);
-        }
-        bg.lineTo(x, base + 3);
-        for (let b = 3; b >= 0; b--) {
-          const y = base - height + height * (b + 1) / 4;
-          bg.lineTo(x - width * (b + 1) / 4, y);
-        }
-        bg.closePath(); bg.fill();
-      }
-      const ground = bg.createLinearGradient(0, h * .59, 0, h);
-      ground.addColorStop(0, '#183329'); ground.addColorStop(1, '#030d0a');
-      bg.fillStyle = ground; bg.beginPath(); bg.moveTo(0, h * .69);
-      bg.bezierCurveTo(w * .24, h * .64, w * .39, h * .6, w * .55, h * .62);
-      bg.bezierCurveTo(w * .74, h * .61, w * .87, h * .65, w, h * .67);
-      bg.lineTo(w, h); bg.lineTo(0, h); bg.closePath(); bg.fill();
-      // A narrowing, gently winding clearing leads the eye toward the valley.
-      const path = bg.createLinearGradient(0, h * .62, 0, h);
-      path.addColorStop(0, '#38534470'); path.addColorStop(1, '#1a2b2050');
-      bg.fillStyle = path; bg.beginPath(); bg.moveTo(w * .54, h * .62);
-      bg.bezierCurveTo(w * .47, h * .72, w * .64, h * .76, w * .32, h);
-      bg.lineTo(w * .80, h);
-      bg.bezierCurveTo(w * .73, h * .78, w * .53, h * .71, w * .57, h * .62);
-      bg.closePath(); bg.fill();
-      // Increasing tree size and contrast frame the open center at three depths.
-      for (let layer = 0; layer < 3; layer++) {
-        const count = [25, 15, 8][layer];
-        for (let i = 0; i < count; i++) {
-          let x = (i / (count - 1) + (random() - .5) * .035) * w;
-          const center = Math.abs(x / w - .54);
-          if (center < [.10, .23, .34][layer]) continue;
-          const width = [4, 12, 28][layer] * (.8 + random() * .8) * Math.max(.6, w / 1500);
-          const lean = (random() - .5) * w * [.03, .05, .09][layer];
-          const base = h * ([.73, .88, 1.06][layer] + random() * .025);
-          const top = h * ([.28, .02, -.19][layer] + random() * .09);
-          const height = base - top;
-          bg.fillStyle = ['#152f27', '#0b211a', '#030f0b'][layer];
-          bg.beginPath(); bg.moveTo(x - width, base);
-          bg.bezierCurveTo(x - width * .4, base - height * .3, x + lean - width * .4, top + height * .2, x + lean - width * .3, top);
-          bg.lineTo(x + lean + width * .3, top);
-          bg.bezierCurveTo(x + lean + width * .6, top + height * .2, x + width * .3, base - height * .3, x + width, base);
-          bg.fill();
-          bg.strokeStyle = bg.fillStyle; bg.lineCap = 'round';
-          for (let b = 0; b < 5; b++) {
-            const y = top + height * (.08 + b * .12 + random() * .05);
-            const direction = random() > .5 ? 1 : -1;
-            const reach = height * (.1 + random() * .16);
-            bg.lineWidth = width * (.18 + random() * .16);
-            bg.beginPath(); bg.moveTo(x + lean * ((base - y) / height), y + height * .07);
-            bg.quadraticCurveTo(x + direction * reach * .55, y, x + direction * reach, y - height * .09);
-            bg.stroke();
-          }
-          if (layer === 2) {
-            bg.strokeStyle = '#19302670'; bg.lineWidth = 1;
-            bg.beginPath(); bg.moveTo(x - width * .35, base);
-            bg.quadraticCurveTo(x - width * .2, base - height * .5, x + lean, top); bg.stroke();
-          }
-        }
-        // Mist between the layers separates their silhouettes without animation.
-        for (let i = 0; i < 4; i++) {
-          bg.save(); bg.translate(w * (.22 + i * .2), h * (.65 + layer * .07)); bg.scale(3.6, .22);
-          glow(bg, 0, 0, w * .09, '121,157,137', layer === 0 ? .09 : .035); bg.restore();
+      seed=9517; treeHooks.length=0;
+      const colors=['#325979','#467a98','#5b98b2','#79bacb','#9fd7de','#bde8e7'];
+      for(let i=0;i<colors.length;i++)block(bg,0,h*i/6,w,h/6+2,colors[i]);
+      // Dense bare winter woods: each row has its own scale and blue atmospheric tint.
+      for(let layer=0;layer<3;layer++) {
+        const count=[28,18,9][layer], base=h*[.8,.87,.95][layer];
+        for(let i=0;i<count;i++) {
+          const x=(i+.25+(random()-.5)*.5)/count*w;
+          const height=h*(.6+random()*.5), width=[4,8,15][layer]*(.7+random()*.6);
+          bareWinterTree(x,base,height,width,['#75aabd','#6093ab','#48758f'][layer],['#84b7c7','#6fa1b5','#56839b'][layer],layer===2);
         }
       }
-      // Soft pools of mist and a dark, uneven forest floor.
-      for (let i = 0; i < 12; i++) {
-        bg.save(); bg.translate(random() * w, h * (.63 + random() * .24)); bg.scale(3.8, .33);
-        glow(bg, 0, 0, w * .11, '98,135,113', .035); bg.restore();
+      // Upper side ledges and lower shelves form stacked, side-scrolling forest tiers.
+      iceTerrace(0,h*.31,w*.24,h*.42,true);
+      iceTerrace(w*.78,h*.33,w*.22,h*.44,true);
+      pixelPine(w*.16,h*.31,h*.21);
+      pixelPine(w*.88,h*.33,h*.23);
+      iceTerrace(0,h*.5,w*.16,h*.63,true);
+      iceTerrace(w*.83,h*.44,w*.17,h*.57,true);
+      for(let i=0;i<16;i++) {
+        const x=i*w/15,base=h*(.82+Math.sin(i)*.035);
+        pixelPine(x,base,h*(.2+random()*.16));
       }
-      // Fine ferns and grasses frame the clearing.
-      for (let i = 0; i < 165; i++) {
-        const x = random() * w, y = h * (.92 + random() * .1);
-        const height = 18 + random() * 95, direction = random() > .5 ? 1 : -1;
-        bg.strokeStyle = i % 3 ? '#0b2119' : '#153024'; bg.lineWidth = .8;
-        bg.beginPath(); bg.moveTo(x, y); bg.quadraticCurveTo(x + direction * 15, y - height * .6, x + direction * 24, y - height); bg.stroke();
-        for (let j = 1; j < 7; j++) {
-          const f = j / 7, px = x + direction * 24 * f, py = y - height * f;
-          const leaf = (1 - f) * height * .27;
-          bg.beginPath(); bg.moveTo(px - leaf, py - leaf * .6); bg.lineTo(px, py); bg.lineTo(px + leaf, py - leaf * .7); bg.stroke();
+      // Tall, heavily snowed conifers establish the middle plane.
+      pixelPine(w*.075,h*.67,h*.61);
+      pixelPine(w*.27,h*.81,h*.51);
+      pixelPine(w*.72,h*.74,h*.69);
+      pixelPine(w*.95,h*.62,h*.59);
+      // Contiguous stepped platforms: high side ledges and a lower central clearing.
+      const terraces=[[0,.2,.67],[.2,.14,.81],[.34,.3,.89],[.64,.19,.74],[.83,.17,.62]];
+      for(const [x,width,top] of terraces)iceTerrace(w*x,h*top,w*width,h+4);
+      const unit=Math.max(.6,Math.min(w/1200,h/800));
+      for(const [x,y] of [[.03,.67],[.17,.67],[.23,.81],[.31,.81],[.4,.89],[.58,.89],[.67,.74],[.79,.74],[.85,.62],[.97,.62]]) {
+        snowShrub(w*x,h*y,unit);
+      }
+      iceCrystal(w*.665,h*.74,unit*1.2);iceCrystal(w*.14,h*.67,unit*.8);
+      iceCrystal(w*.89,h*.62,unit);
+      // A few tiny holiday details remain tucked among the trees.
+      pixelPine(w*.37,h*.89,h*.18,true);
+      for(const [xx,yy,color] of [[.43,.89,'#bc6985'],[.46,.89,'#478c89']]) {
+        const u=Math.max(2,Math.round(unit*3)),x=w*xx,y=h*yy;
+        block(bg,x,y-u*5,u*6,u*5,'#243a61');block(bg,x+u,y-u*4,u*4,u*4,color);
+        block(bg,x+u*2,y-u*5,u,u*5,'#ffe4a2');block(bg,x,y-u*5,u*6,u,'#eef7ee');
+      }
+      // Delicate floating ice particles in the open gaps between the layers.
+      for(let i=0;i<55;i++) {
+        const x=random()*w,y=h*(.2+random()*.65);
+        block(bg,x,y,2,2,i%3?'#b0e7ec':'#eff9ee');
+      }
+    }
+    function createGifts() {
+      const previous=gifts.map(g=>g.phase==='eaten'||g.phase==='flying');
+      gifts.length=0;
+      const count=w<650?6:12,used=new Set();
+      for(let i=0;i<count;i++) {
+        const target={x:w*(.1+(i%6)*.16),y:h*(i<6?.34:.55)};
+        const hook=treeHooks.filter(p=>!used.has(p)).sort((a,b)=>Math.hypot(a.x-target.x,a.y-target.y)-Math.hypot(b.x-target.x,b.y-target.y))[0];
+        if(!hook)continue;used.add(hook);
+        gifts.push({hookX:hook.x,hookY:hook.y,x:hook.x,y:hook.y+30,size:w<650?24:28,color:i%3,phase:previous[i]?'eaten':'hanging',flight:0});
+      }
+      updateGiftCount();
+    }
+    function updateGiftCount() {
+      giftCount.textContent=`선물 ${gifts.filter(g=>g.phase!=='hanging').length} / ${gifts.length}`;
+    }
+    function resetGifts() {
+      gifts.forEach(g=>{g.phase='hanging';g.flight=0;});
+      biteTime=0;mouthArmed=!mouthOpen;updateGiftCount();
+      status.textContent='';
+    }
+    function mouthPosition() { return {x:fairy.x,y:fairy.y-12+Math.sin(time*1.8)*2}; }
+    function giftPosition(g) { return {x:g.x+Math.sin(time*1.2+g.hookX)*3,y:g.y}; }
+    function eatNearGift(point = null) {
+      if(paused||pointer.strength<.1||gifts.some(g=>g.phase==='flying'))return false;
+      const mouth=mouthPosition(),available=gifts.filter(g=>g.phase==='hanging');
+      const clicked=point&&available.find(g=>{const p=giftPosition(g);return Math.hypot(p.x-point.x,p.y-point.y)<g.size/2+18;});
+      const nearby=(clicked?[clicked]:available).filter(g=>{const p=giftPosition(g);return Math.hypot(p.x-mouth.x,p.y-mouth.y)<82;});
+      nearby.sort((a,b)=>Math.hypot(a.x-mouth.x,a.y-mouth.y)-Math.hypot(b.x-mouth.x,b.y-mouth.y));
+      if(!nearby[0]) {
+        if(point&&clicked)status.textContent='루돌프가 선물 가까이에 도착하면 다시 클릭해 주세요.';
+        return false;
+      }
+      const gift=nearby[0],position=giftPosition(gift);
+      gift.phase='flying';gift.flight=0;gift.fromX=position.x;gift.fromY=position.y;
+      biteTime=.7;updateGiftCount();status.textContent='냠! 선물을 먹었어요. 불이 완전히 꺼졌다 켜지면 다시 나타나요.';
+      return true;
+    }
+    function updateMouthGesture(landmarks,now,width,height) {
+      const distance=(a,b)=>Math.hypot((landmarks[a].x-landmarks[b].x)*width,(landmarks[a].y-landmarks[b].y)*height);
+      const ratio=distance(13,14)/Math.max(1,distance(61,291));
+      if(!mouthOpen&&ratio>.36){mouthOpen=true;mouthOpenedAt=now;}
+      else if(mouthOpen&&ratio<.22){mouthOpen=false;mouthArmed=true;}
+    }
+    function updateGifts(dt) {
+      biteTime=Math.max(0,biteTime-dt);
+      for(const g of gifts)if(g.phase==='flying') {
+        g.flight=Math.min(1,g.flight+dt/.45);
+        if(g.flight>=1)g.phase='eaten';
+      }
+      if(!paused&&cameraStream&&faceFeatures&&mouthOpen&&mouthArmed&&performance.now()-mouthOpenedAt>=120) {
+        if(eatNearGift())mouthArmed=false;
+      }
+    }
+    function drawGifts() {
+      ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=pointer.strength;
+      const mouth=mouthPosition();
+      for(const g of gifts) {
+        if(g.phase==='eaten')continue;
+        let p=giftPosition(g),size=g.size;
+        if(g.phase==='flying') {
+          const t=1-Math.pow(1-g.flight,2);
+          p={x:g.fromX+(mouth.x-g.fromX)*t,y:g.fromY+(mouth.y-g.fromY)*t-Math.sin(t*Math.PI)*18};
+          size*=1-g.flight*.85;
+        } else {
+          block(ctx,g.hookX,g.hookY,2,g.y-g.hookY,'#b8d5d3');
+        }
+        const x=p.x-size/2,y=p.y-size/2,u=Math.max(2,size/8);
+        block(ctx,x-2,y-2,size+4,size+4,'#202c4c');
+        block(ctx,x,y,size,size,['#d16c87','#65aa9b','#cdad65'][g.color]);
+        block(ctx,x,y,size,u,['#ed9eb1','#a2d7b5','#f1d698'][g.color]);
+        block(ctx,p.x-u/2,y,u,size,'#ffefac');block(ctx,x,p.y-u/2,size,u,'#ffefac');
+        block(ctx,p.x-u*2,y-u*2,u*2,u,'#ffefac');block(ctx,p.x+u,y-u*2,u*2,u,'#ffefac');
+        block(ctx,p.x-u,y-u,u*3,u,'#ffefac');
+        if(g.phase==='hanging'&&Math.hypot(p.x-mouth.x,p.y-mouth.y)<82) {
+          pixelStar(ctx,p.x+size*.8,p.y-size*.6,2,'#fff1b2');
         }
       }
-      const vignette = bg.createRadialGradient(w / 2, h * .48, h * .15, w / 2, h * .5, Math.max(w, h) * .7);
-      vignette.addColorStop(0, 'transparent'); vignette.addColorStop(1, '#010706cc');
-      bg.fillStyle = vignette; bg.fillRect(0, 0, w, h);
+      ctx.restore();
+    }
+    function lightForest() {
+      if(pointer.strength===0)return;
+      const x=fairy.x,y=fairy.y-48,radius=w<650?160:220;
+      ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
+      const shade=ctx.createRadialGradient(x,y,radius*.18,x,y,radius);
+      shade.addColorStop(0,'rgba(3,9,24,0)');shade.addColorStop(.56,'rgba(3,9,24,.06)');
+      shade.addColorStop(.8,'rgba(3,9,24,.62)');shade.addColorStop(1,'rgba(3,9,24,.91)');
+      ctx.fillStyle=shade;ctx.fillRect(0,0,w,h);ctx.restore();
+    }
+    function drawSnow() {
+      ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=pointer.strength*.8;
+      for(let i=0;i<135;i++) {
+        const depth=(i%3+1)/3;
+        const x=((i*.61803398875%1)*(w+40)+Math.sin(time*.22+i)*18+time*depth*8)%(w+40)-20;
+        const y=((i*.754877666%1)*(h+40)+time*(10+depth*25))%(h+40)-20;
+        block(ctx,x,y,depth>.7?4:2,2,depth>.7?'#f3f5de':'#a5cfd8');
+      }
+      ctx.restore();
     }
 
     function resize() {
       w = innerWidth; h = innerHeight; dpr = Math.min(devicePixelRatio || 1, 2);
-      for (const element of [canvas, scenery]) { element.width = Math.round(w * dpr); element.height = Math.round(h * dpr); }
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); bg.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      for (const element of [scene, scenery]) { element.width = Math.ceil(w / pixelSize); element.height = Math.ceil(h / pixelSize); }
+      ctx.setTransform(1 / pixelSize, 0, 0, 1 / pixelSize, 0, 0); bg.setTransform(1 / pixelSize, 0, 0, 1 / pixelSize, 0, 0);
+      screen.imageSmoothingEnabled = false; ctx.imageSmoothingEnabled = false; bg.imageSmoothingEnabled = false;
       buildForest();
+      createGifts();
       pointer.x = fairy.x = w * .55; pointer.y = fairy.y = h * .5;
       companions.forEach(p => { p.x = fairy.x + p.offsetX * fairy.facing; p.y = fairy.y + p.offsetY; });
       leaves.length = 0;
       if (paused) draw(0);
     }
 
-    function drawFairy(t, position, size, main = false) {
-      const x = position.x, y = position.y + Math.sin(t * 1.8) * 2;
-      ctx.save(); ctx.globalAlpha = pointer.strength;
-      ctx.translate(x, y); ctx.scale(size, size);
-      glow(ctx, 0, 0, 32, '188,226,147', .23);
-      if (main) {
-        ctx.strokeStyle = '#d9edbc'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
-        ctx.shadowColor = '#d9edbc'; ctx.shadowBlur = 5;
-        for (const side of [-1, 1]) {
-          const stride = Math.sin(fairy.step + (side === 1 ? Math.PI : 0)) * fairy.walk * fairy.facing;
-          const footX = side * 3 + stride * 5, footY = 20 - Math.max(0, stride * fairy.facing) * 3;
-          ctx.beginPath(); ctx.moveTo(side * 2, 7);
-          ctx.quadraticCurveTo(side * 2 + stride * 3, 13, footX, footY);
-          ctx.lineTo(footX + fairy.facing * 3, footY); ctx.stroke();
-          ctx.fillStyle = '#d9edbc'; ctx.beginPath();
-          ctx.ellipse(footX + fairy.facing * 1.5, footY, 2.4, .85, 0, 0, Math.PI * 2); ctx.fill();
+    function makeSprite(main, resting = true) {
+      const sprite = document.createElement('canvas');sprite.width=36;sprite.height=70;
+      const c=sprite.getContext('2d'),r=(x,y,w,h,color)=>{c.fillStyle=color;c.fillRect(x,y,w,h);};
+      const ink='#2b2946',tan='#d7ac7c',light='#f1d7a1',shade='#ad795f';
+      if(main) {
+        // Antlers and ears: intentionally chunky, hand-placed sprite pixels.
+        for(const side of [-1,1]) {
+          const x=side<0?8:26;
+          r(x,5,2,14,ink);r(x,5,1,12,'#b98259');
+          r(x+(side<0?-4:0),9,6,2,ink);r(x+(side<0?-4:1),9,5,1,'#d1a16a');
+          r(x+(side<0?1:-4),12,5,2,'#b98259');
         }
-      }
-      if (lightImage) {
-        const ratio = lightImage.naturalHeight / lightImage.naturalWidth;
-        ctx.drawImage(lightImage, -30, -30 * ratio, 60, 60 * ratio);
+        r(4,19,8,5,ink);r(5,19,6,4,tan);r(6,20,4,2,'#cc8e80');
+        r(25,19,8,5,ink);r(26,19,6,4,tan);r(27,20,4,2,'#cc8e80');
+        const rows=[[18,12,12],[19,10,16],[21,9,18],[25,8,20],[30,7,22],[37,6,24],[47,7,22],[51,9,18],[53,12,12]];
+        for(let i=0;i<rows.length-1;i++) {
+          const [y,x,width]=rows[i],height=rows[i+1][0]-y;
+          r(x,y,width,height,ink);r(x+1,y,width-2,height,tan);r(x+width-4,y,3,height,shade);
+          if(y<35)r(x+2,y,2,height,light);
+        }
+        r(12,53,12,1,ink);
+        // Simple tunic, mitten hands, short legs and dark boots.
+        r(12,54,12,9,ink);r(13,54,10,8,'#ad795f');r(14,55,7,5,tan);r(16,55,3,5,light);
+        r(9,56,4,4,ink);r(10,56,3,3,tan);r(24,56,4,4,ink);r(24,56,3,3,tan);
+        r(14,63,2,5,tan);r(21,63,2,5,tan);r(12,67,5,2,ink);r(20,67,5,2,ink);
+        if(resting) {
+          r(13,28,2,3,ink);r(13,28,1,1,'#fff2c7');
+          r(23,28,2,1,ink);r(22,29,2,1,ink);r(23,30,2,1,ink);
+          r(17,50,3,1,ink);
+        }
+        r(14,36,9,1,ink);r(12,37,13,2,ink);r(11,39,15,6,ink);r(12,45,13,2,ink);r(14,47,9,1,ink);
+        r(14,37,9,1,'#ef8d86');r(12,39,13,6,'#cf5269');r(13,45,11,1,'#a43b59');r(12,39,2,4,'#ef8d86');r(15,38,3,2,'#ffc0a0');r(23,40,2,4,'#ab3c58');
       } else {
-      const flap = .65 + Math.sin(t * 4.2) * .25;
-      for (const side of [-1, 1]) {
-        ctx.save(); ctx.scale(side * flap, 1); ctx.rotate(-.2);
-        ctx.fillStyle = 'rgba(199,235,206,.26)'; ctx.strokeStyle = 'rgba(223,251,215,.5)'; ctx.lineWidth = .6;
-        ctx.beginPath(); ctx.ellipse(12, -8, 13, 6, -.65, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(9, 3, 9, 4, .4, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+        r(17,11,2,3,'#ffe8a3');r(15,13,6,2,'#ffe8a3');r(17,15,2,2,'#f1ad70');
+        for(let tier=0;tier<3;tier++) {
+          const y=22+tier*9,half=5+tier*3;
+          for(let row=0;row<8;row++) {
+            const width=Math.min(half,2+Math.floor(row/2)*2);
+            r(18-width,y+row,width*2,1,ink);if(width>1)r(19-width,y+row,width*2-2,1,row<3?'#93c786':'#4f9b78');
+          }
+          r(18-half,y+8,half*2,1,ink);r(19-half,y+7,half*2-2,1,'#2f6b66');
+        }
+        r(15,20,6,3,'#a1d08e');r(14,24,8,7,ink);r(15,24,6,6,'#f2dbb0');
+        r(16,26,1,1,ink);r(19,26,1,1,ink);r(17,28,2,1,'#ac6b72');
+        r(12,37,2,2,'#f1b286');r(21,42,2,2,'#f1d188');r(15,47,2,2,'#e47d88');
+        r(14,49,2,5,'#f5dfb4');r(21,49,2,5,'#f5dfb4');r(12,54,4,2,ink);r(21,54,4,2,ink);
       }
-      ctx.shadowColor = '#e5ffd0'; ctx.shadowBlur = 13; ctx.fillStyle = '#e5f6c9';
-      ctx.beginPath(); ctx.arc(0, -9, 2.8, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(0, -5); ctx.quadraticCurveTo(-2, 2, -6, 9); ctx.quadraticCurveTo(0, 7, 5, 10); ctx.quadraticCurveTo(2, 1, 0, -5); ctx.fill();
-      }
-      if (main && !(cameraStream && faceCrop && video.readyState >= 2)) {
-        ctx.save(); ctx.globalCompositeOperation = 'source-over';
-        ctx.shadowBlur = 5; ctx.shadowColor = '#e5ffd0'; ctx.fillStyle = '#e5f6c9';
-        ctx.beginPath(); ctx.arc(0, -12, 6.8, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0; ctx.fillStyle = '#304630';
-        for (const eye of [-2.3, 2.3]) { ctx.beginPath(); ctx.ellipse(eye, -13.2, .7, .95, 0, 0, Math.PI * 2); ctx.fill(); }
-        ctx.strokeStyle = '#49623c'; ctx.lineWidth = .7; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(-2.5, -10.5); ctx.quadraticCurveTo(0, -7.8, 2.5, -10.5); ctx.stroke();
+      return sprite;
+    }
+    const rudolphRest = makeSprite(true), rudolphCamera = makeSprite(true, false), treeFairy = makeSprite(false);
+    function drawFairy(t, position, size, main = false) {
+      const cell=main?3:2, x=Math.round(position.x/2)*2, y=Math.round((position.y+Math.sin(t*1.8)*2)/2)*2;
+      const hasFeatures=main&&cameraStream&&faceFeatures;
+      ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=pointer.strength;
+      ctx.translate(x,y);
+      // Two-frame, stepped wings read as sprite animation even while hovering.
+      const reach=Math.sin(t*4.2)>0?1:0;
+      for(const side of [-1,1]) {
+        ctx.save();ctx.scale(side,1);ctx.globalAlpha=pointer.strength*.75;
+        for(let row=0;row<9;row++) {
+          const width=(row<4?row+2:10-row)+reach*2;
+          block(ctx,(9+row*.5)*cell,(-5+row)*cell,width*cell,cell,'#8ec8d0');
+          if(row%2===0)block(ctx,(10+row*.5)*cell,(-5+row)*cell,(width-1)*cell,cell,'#d2edcc');
+        }
         ctx.restore();
       }
-      if (main && cameraStream && faceCrop && video.readyState >= 2) {
-        ctx.save(); ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 10;
-        ctx.beginPath(); ctx.arc(0, -12, 6.8, 0, Math.PI * 2); ctx.clip(); ctx.scale(-1, 1);
-        const crop = zoomedFaceCrop(faceCrop, video.videoWidth, video.videoHeight);
-        ctx.drawImage(video, crop.x, crop.y, crop.side, crop.side, -6.8, -18.8, 13.6, 13.6); ctx.restore();
+      const sprite=main?(hasFeatures?rudolphCamera:rudolphRest):treeFairy;
+      if(lightImage) {
+        const iw=36*cell,ih=iw*lightImage.naturalHeight/lightImage.naturalWidth;
+        ctx.drawImage(lightImage,-iw/2,-ih/2,iw,ih);
+        if(main)ctx.drawImage(sprite,0,0,36,54,-18*cell,-54*cell,36*cell,54*cell);
+      } else if(main) {
+        ctx.drawImage(sprite,0,0,36,63,-18*cell,-54*cell,36*cell,63*cell);
+        for(const side of [-1,1]) {
+          const sx=side===-1?12:20,stride=Math.round(Math.sin(fairy.step+(side===1?Math.PI:0))*fairy.walk);
+          ctx.drawImage(sprite,sx,63,5,7,(sx-18+stride)*cell,(9-Math.max(0,stride))*cell,5*cell,7*cell);
+        }
+      } else ctx.drawImage(sprite,-18*cell,-54*cell,36*cell,70*cell);
+      if(hasFeatures) {
+        for(const [name,cx,cy,width,maxHeight] of [['rightEye',-6,-25,2.8,2.1],['leftEye',6,-25,2.8,2.1],['mouth',0,-4,4.2,3.1]]) {
+          const part=faceFeatures[name],pw=Math.min(width*faceZoom,maxHeight/part.aspect)*3*size,ph=pw*part.aspect;
+          ctx.save();ctx.translate(cx*cell,cy*cell);ctx.scale(-1,1);ctx.drawImage(part.canvas,-pw/2,-ph/2,pw,ph);ctx.restore();
+        }
+        // Restore the red sprite nose above all webcam patches.
+        ctx.drawImage(rudolphCamera,11,36,15,12,-7*cell,-18*cell,15*cell,12*cell);
+      }
+      if(main&&!hasFeatures&&biteTime>0) {
+        block(ctx,-12,-16,24,14,'#30253e');block(ctx,-6,-6,12,4,'#ef9caa');
+        block(ctx,-9,-16,18,2,'#f2ddbc');
       }
       ctx.restore();
     }
@@ -278,13 +486,14 @@
       const awake = pointer.active || arriving;
       const rate = awake ? 3.2 : 1.25;
       pointer.strength += ((awake ? 1 : 0) - pointer.strength) * (1 - Math.exp(-dt * rate));
-      if (pointer.strength < .002 && !awake) pointer.strength = 0;
-      ctx.globalAlpha = pointer.strength * .65;
+      if (pointer.strength < .01 && !awake) { pointer.strength = 0; forestAsleep = true; }
+      if(awake&&forestAsleep){resetGifts();forestAsleep=false;}
+      ctx.globalAlpha = pointer.strength;
       if (forestImage) {
         const scale = Math.max(w / forestImage.naturalWidth, h / forestImage.naturalHeight);
         const iw = forestImage.naturalWidth * scale, ih = forestImage.naturalHeight * scale;
         ctx.drawImage(forestImage, (w - iw) / 2, (h - ih) / 2, iw, ih);
-        ctx.fillStyle = '#0009'; ctx.fillRect(0, 0, w, h);
+
       } else ctx.drawImage(scenery, 0, 0, w, h);
       const ease = 1 - Math.exp(-dt * 1.35);
       if (Math.abs(pointer.x - fairy.x) > .75) fairy.facing = pointer.x > fairy.x ? 1 : -1;
@@ -305,30 +514,24 @@
         for (let j = i + 1; j < companions.length; j++) {
           const a = companions[i], b = companions[j];
           const dx = b.x - a.x, dy = b.y - a.y, gap = Math.hypot(dx, dy);
-          if (gap >= 34) continue;
-          const push = (34 - gap) * .5 * (1 - Math.exp(-dt * 10));
+          if (gap >= 54) continue;
+          const push = (54 - gap) * .5 * (1 - Math.exp(-dt * 10));
           const nx = gap > .01 ? dx / gap : 0, ny = gap > .01 ? dy / gap : 1;
           a.x -= nx * push; a.y -= ny * push;
           b.x += nx * push; b.y += ny * push;
         }
       }
+      updateGifts(dt);
+      drawGifts();
+      lightForest();
       ctx.globalAlpha = pointer.strength;
       ctx.globalCompositeOperation = 'screen';
-      if (pointer.strength > .001) {
-        const radius = 112;
-        const beam = ctx.createRadialGradient(fairy.x, fairy.y, 0, fairy.x, fairy.y, radius);
-        beam.addColorStop(0, 'rgba(222,239,181,.34)');
-        beam.addColorStop(.58, 'rgba(214,233,171,.29)');
-        beam.addColorStop(.8, 'rgba(198,221,153,.19)');
-        beam.addColorStop(1, 'rgba(198,221,153,0)');
-        ctx.fillStyle = beam; ctx.beginPath(); ctx.arc(fairy.x, fairy.y, radius, 0, Math.PI * 2); ctx.fill();
-      }
       for (const fly of flies) {
         const t = time * fly.speed + fly.phase;
         const x = fly.x * w + Math.sin(t) * 24, y = fly.y * h + Math.cos(t * .75) * 17;
         const pulse = .18 + (Math.sin(t * 2 + fly.phase) + 1) * .32;
         glow(ctx, x, y, fly.size * 10, '186,219,104', pulse * .18);
-        ctx.fillStyle = `rgba(210,235,148,${pulse})`; ctx.beginPath(); ctx.arc(x, y, fly.size, 0, Math.PI * 2); ctx.fill();
+        block(ctx,x,y,2,2,`rgba(255,236,161,${pulse})`);
       }
       for (const p of sparkles) {
         const angle = p.angle + time * .12;
@@ -336,14 +539,16 @@
         const y = fairy.y + Math.sin(angle) * p.radius * .7 + Math.sin(time * .7 + p.phase) * 4;
         const alpha = Math.pow(Math.max(0, Math.sin(time * p.speed + p.phase)), 4);
         glow(ctx, x, y, 10, '197,229,135', alpha * .25);
-        ctx.fillStyle = `rgba(223,239,170,${alpha * .9})`; ctx.beginPath(); ctx.arc(x, y, p.size, 0, Math.PI * 2); ctx.fill();
+        block(ctx,x,y,2,2,`rgba(255,236,161,${alpha*.9})`);
       }
       if (pointer.strength > .001) {
         drawFairy(time, fairy, 2.6, true);
-        companions.forEach((p, i) => drawFairy(time + i + 1, p, .494));
+        companions.forEach((p, i) => drawFairy(time + i + 1, p, .988));
       }
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      drawSnow();
       drawLeaves(dt);
+      screen.drawImage(scene, 0, 0, canvas.width, canvas.height);
     }
 
     function drawLeaves(dt) {
@@ -373,6 +578,8 @@
     canvas.addEventListener('click', event => {
       if (paused) return;
       pointer.x = event.clientX; pointer.y = event.clientY; lastMove = performance.now();
+      if(cameraStream)status.textContent='웹캠 모드에서는 선물 가까이에서 입을 크게 벌려보세요.';
+      else {biteTime=.7;eatNearGift({x:event.clientX,y:event.clientY});}
       for (let i = 0; i < 14; i++) {
         leaves.push({ x: event.clientX, y: event.clientY, vx: (Math.random() - .5) * 130, vy: -35 - Math.random() * 65, life: 2.4 + Math.random() * 1.6, size: 5 + Math.random() * 5, angle: Math.random() * Math.PI * 2, spin: (Math.random() - .5) * 3, phase: Math.random() * Math.PI * 2, color: ['#8da765', '#b3bd79', '#688c63'][i % 3] });
       }
@@ -408,51 +615,81 @@
       });
     }
     const cameraOn = document.querySelector('#camera-on'), cameraOff = document.querySelector('#camera-off');
-    async function loadFaceDetector() {
+    async function loadFaceLandmarker() {
       if (!detectorPromise) {
         detectorPromise = (async () => {
-          const { FaceDetector, FilesetResolver } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/vision_bundle.mjs');
+          const { FaceLandmarker, FilesetResolver } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/vision_bundle.mjs');
           const files = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm');
-          return FaceDetector.createFromOptions(files, {
-            baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite', delegate: 'CPU' },
-            runningMode: 'VIDEO', minDetectionConfidence: .55
+          return FaceLandmarker.createFromOptions(files, {
+            baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task', delegate: 'CPU' },
+            runningMode: 'VIDEO', numFaces: 3, minFaceDetectionConfidence: .55,
+            minFacePresenceConfidence: .55, minTrackingConfidence: .5
           });
         })().catch(error => { detectorPromise = null; throw error; });
       }
       return detectorPromise;
     }
     function setFaceMessage(message) { if (faceStatus.textContent !== message) faceStatus.textContent = message; }
-    function cropFromBox(box, width, height) {
-      const side = Math.min(Math.max(box.width, box.height) * 1.25, width, height);
-      return { x: Math.max(0, Math.min(width - side, box.originX + box.width / 2 - side / 2)), y: Math.max(0, Math.min(height - side, box.originY + box.height / 2 - side / 2)), side };
+    // Ordered contours from MediaPipe Face Mesh: eyes and the outer lip only.
+    const featureContours = {
+      rightEye: [33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246],
+      leftEye: [263,249,390,373,374,380,381,382,362,398,384,385,386,387,388,466],
+      mouth: [61,146,91,181,84,17,314,405,321,375,291,409,270,269,267,0,37,39,40,185]
+    };
+    const featurePatches = Object.fromEntries(Object.keys(featureContours).map(name => {
+      const patch = document.createElement('canvas'); patch.width = 160; patch.height = 100;
+      return [name, { canvas: patch, context: patch.getContext('2d'), aspect: 1 }];
+    }));
+    function extractFeatures(landmarks, source, width, height) {
+      for (const [name, indices] of Object.entries(featureContours)) {
+        const points = indices.map(i => ({ x: landmarks[i].x * width, y: landmarks[i].y * height }));
+        const minX = Math.min(...points.map(p => p.x)), maxX = Math.max(...points.map(p => p.x));
+        const minY = Math.min(...points.map(p => p.y)), maxY = Math.max(...points.map(p => p.y));
+        const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+        // A tiny margin keeps eyelids/lip edges, including nearly closed eyes.
+        const margin = Math.max(1, (maxX - minX) * .025);
+        const left = Math.max(0, minX - margin), top = Math.max(0, minY - margin);
+        const right = Math.min(width, maxX + margin), bottom = Math.min(height, maxY + margin);
+        if (right <= left || bottom <= top) return null;
+        const part = featurePatches[name], pc = part.context;
+        part.aspect = (bottom - top) / (right - left);
+        pc.clearRect(0, 0, part.canvas.width, part.canvas.height); pc.save();
+        pc.scale(part.canvas.width / (right - left), part.canvas.height / (bottom - top));
+        pc.translate(-left, -top); pc.beginPath();
+        points.forEach((p, i) => {
+          const dx = p.x - cx, dy = p.y - cy, distance = Math.hypot(dx, dy) || 1;
+          const x = p.x + dx / distance * margin, y = p.y + dy / distance * margin;
+          if (i === 0) pc.moveTo(x, y); else pc.lineTo(x, y);
+        });
+        pc.closePath(); pc.clip();
+        pc.drawImage(source, 0, 0, width, height); pc.restore();
+      }
+      return featurePatches;
     }
-    function zoomedFaceCrop(crop, width, height) {
-      const side = Math.min(crop.side / faceZoom, width, height);
-      return { x: Math.max(0, Math.min(width - side, crop.x + crop.side / 2 - side / 2)), y: Math.max(0, Math.min(height - side, crop.y + crop.side / 2 - side / 2)), side };
+    function faceArea(points) {
+      const xs = points.map(p => p.x), ys = points.map(p => p.y);
+      return (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys));
     }
     zoomSlider.addEventListener('input', () => {
-      faceZoom = Math.max(.8, Math.min(3, Number(zoomSlider.value)));
+      faceZoom = Math.max(.8, Math.min(1.5, Number(zoomSlider.value)));
       const label = `${faceZoom.toFixed(1)}배`;
       document.querySelector('#zoom-value').textContent = label;
       zoomSlider.setAttribute('aria-valuetext', label);
       if (paused) draw(0);
     });
     function trackFace(now) {
-      if (!cameraStream || !faceDetector) return;
+      if (!cameraStream || !faceLandmarker) return;
       if (video.readyState >= 2 && now - lastDetection >= 100 && video.currentTime !== lastVideoTime) {
         lastDetection = now; lastVideoTime = video.currentTime;
         try {
-          const detections = faceDetector.detectForVideo(video, now).detections;
-          const boxes = detections.map(d => d.boundingBox).filter(b => b && b.width > 0 && b.height > 0);
-          const box = boxes.sort((a, b) => b.width * b.height - a.width * a.height)[0];
-          if (box) {
-            const next = cropFromBox(box, video.videoWidth, video.videoHeight);
-            if (faceCrop && Math.hypot(next.x - faceCrop.x, next.y - faceCrop.y) < next.side * .5) {
-              for (const key of ['x', 'y', 'side']) faceCrop[key] += (next[key] - faceCrop[key]) * .4;
-            } else faceCrop = next;
-            faceSeen = now; setFaceMessage('얼굴을 찾았어요 · 요정과 연결됨');
+          const faces = faceLandmarker.detectForVideo(video, now).faceLandmarks;
+          const landmarks = faces.sort((a, b) => faceArea(b) - faceArea(a))[0];
+          if (landmarks) {
+            faceFeatures = extractFeatures(landmarks, video, video.videoWidth, video.videoHeight);
+            faceSeen = now; updateMouthGesture(landmarks,now,video.videoWidth,video.videoHeight);
+            setFaceMessage(mouthOpen?'입을 벌렸어요 · 선물 가까이 가보세요':'선물 앞에서 입을 크게 벌려보세요');
           } else if (now - faceSeen > 450) {
-            faceCrop = null; setFaceMessage('얼굴을 찾고 있어요');
+            faceFeatures = null; mouthOpen=false;mouthArmed=true;setFaceMessage('눈과 입을 찾고 있어요');
           }
           if (paused) draw(0);
         } catch {
@@ -464,11 +701,12 @@
     }
     function stopCamera() {
       cameraRequest++;
-      cancelAnimationFrame(faceFrame); faceFrame = null; faceCrop = null;
+      cancelAnimationFrame(faceFrame); faceFrame = null; faceFeatures = null;
+      mouthOpen=false;mouthArmed=true;mouthOpenedAt=0;
       lastDetection = -Infinity; lastVideoTime = -1; faceSeen = -Infinity;
       if (cameraStream) cameraStream.getTracks().forEach(track => track.stop());
       cameraStream = null; video.srcObject = null; cameraOn.disabled = false; cameraOff.disabled = true;
-      cameraOrb.classList.remove('live'); setFaceMessage('웹캠을 켜면 당신이 요정이 됩니다');
+      cameraOrb.classList.remove('live'); setFaceMessage('웹캠을 켜면 내 눈과 입이 요정에게 나타나요');
       if (paused) draw(0);
     }
     cameraOn.addEventListener('click', async () => {
@@ -483,9 +721,9 @@
         cameraOrb.classList.add('live'); setFaceMessage('얼굴 인식을 준비하고 있어요');
         stream.getVideoTracks()[0].addEventListener('ended', () => { if (cameraStream === stream) { stopCamera(); status.textContent = '웹캠 연결이 종료되었어요.'; } });
         status.textContent = '얼굴 인식 파일을 불러오고 있어요. 처음에는 잠시 걸릴 수 있어요.';
-        const detector = await loadFaceDetector();
+        const detector = await loadFaceLandmarker();
         if (request !== cameraRequest) return;
-        faceDetector = detector; setFaceMessage('얼굴을 찾고 있어요');
+        faceLandmarker = detector; setFaceMessage('눈과 입을 찾고 있어요');
         status.textContent = '얼굴이 보이도록 카메라를 바라보고 마우스를 움직여 보세요.';
         faceFrame = requestAnimationFrame(trackFace);
       } catch (error) {
