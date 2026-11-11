@@ -41,6 +41,7 @@ const checks = `(() => {
   fairy.x=first.x;fairy.y=first.y+12;pointer.x=fairy.x;pointer.y=fairy.y;
   canvas.dispatchEvent(new MouseEvent('click',{clientX:first.x,clientY:first.y}));
   assert(first.phase==='flying'&&biteTime>0,'Click did not start eating animation');
+  assert(wrapping.some(p=>p.kind==='paper')&&wrapping.some(p=>p.kind==='ribbon'),'Click did not release paper and ribbon');
   updateGifts(.5);assert(first.phase==='eaten','Gift did not disappear');
   assert(crunchCalls===1,'Click eating did not trigger crunch');updateGifts(.5);
   assert(crunchCalls===1,'An eaten gift replayed its crunch');
@@ -73,6 +74,29 @@ const checks = `(() => {
   delete video.readyState;delete video.currentTime;stopCamera();
   assert(!cameraStream&&!mouthOpen,'Camera stop did not clear gesture');
   fairy.x=w/2;fairy.y=h/2;pointer.x=fairy.x;pointer.y=fairy.y;pointer.strength=1;
+  const overlap=gifts.find(g=>g.phase==='hanging'),originalGift={...overlap};
+  overlap.x=fairy.x;overlap.y=fairy.y-36;overlap.color=1;
+  wrapping.length=0;draw(0);
+  const box=giftPosition(overlap),front=ctx.getImageData(Math.floor((box.x-6)/pixelSize),Math.floor((box.y-6)/pixelSize),1,1).data;
+  assert(front[1]>front[0]+25,'Gift behind the snowman sprite');
+  Object.assign(overlap,originalGift);
+  biteTime=.6;ctx.clearRect(0,0,w,h);drawFairy(0,fairy,2.6,true);
+  const openMouth=ctx.getImageData(Math.floor((fairy.x+18)/pixelSize),Math.floor((fairy.y-6)/pixelSize),1,1).data;
+  assert(openMouth[0]===48&&openMouth[1]===37,'Wide bite mouth did not render');
+  biteTime=0;
+  const eyePatch=document.createElement('canvas');eyePatch.width=24;eyePatch.height=8;
+  const eyePixels=eyePatch.getContext('2d');eyePixels.fillStyle='#a526b7';eyePixels.fillRect(0,0,24,8);
+  const feature={canvas:eyePatch,aspect:1/3};
+  faceFeatures={rightEye:feature,leftEye:feature,mouth:feature};cameraStream={};
+  ctx.clearRect(0,0,w,h);drawFairy(0,fairy,2.6,true);
+  const outerEye=ctx.getImageData(Math.floor((fairy.x+48)/pixelSize),Math.floor((fairy.y-66)/pixelSize),1,1).data;
+  assert(outerEye[0]===165&&outerEye[2]===183,'Enlarged webcam eye did not cover the expected area');
+  faceFeatures.mouth={canvas:eyePatch,aspect:.7};
+  mouthOpen=true;
+  ctx.clearRect(0,0,w,h);drawFairy(0,fairy,2.6,true);
+  const lowerLip=ctx.getImageData(Math.floor(fairy.x/pixelSize),Math.floor((fairy.y+32)/pixelSize),1,1).data;
+  assert(lowerLip[0]===165&&lowerLip[2]===183,'Open webcam mouth did not stretch downward');
+  faceFeatures=null;cameraStream=null;mouthOpen=false;
   ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);lightForest();
   const center=ctx.getImageData(Math.floor(fairy.x/pixelSize),Math.floor((fairy.y-48)/pixelSize),1,1).data;
   const edge=ctx.getImageData(0,0,1,1).data;
@@ -93,7 +117,7 @@ const checks = `(() => {
   assert(!playCrunch(),'Muted crunch was allowed to play');
   document.querySelector('#sound-toggle').click();assert(soundEnabled,'Sound re-enable failed');
   paused=true;cancelAnimationFrame(frame);pointer.strength=1;lastMove=performance.now();draw(0);
-  return 'PASS '+w+'x'+h+': proximity/click, eating animation, webcam-only gesture, one bite per opening, face loss, spotlight, dark-cycle respawn, click/webcam crunch, audio waveform, mute toggle';
+  return 'PASS '+w+'x'+h+': proximity/click, eating animation, webcam-only gesture, one bite per opening, face loss, spotlight, dark-cycle respawn, click/webcam crunch, audio waveform, mute toggle, front gift layer, wide mouth, wrapper particles';
 })()`;
 (async () => {
   try {

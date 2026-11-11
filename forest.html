@@ -12,7 +12,7 @@
     * { box-sizing:border-box; }
     html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#080e20; }
     body { color:#e1eced; font:12px/1.7 Galmuri,'DotumChe',monospace; }
-    canvas { display:block; width:100%; height:100%; touch-action:none; image-rendering:pixelated; cursor:url('leaf-cursor.svg') 4 4,crosshair; }
+    canvas { display:block; width:100%; height:100%; touch-action:none; image-rendering:pixelated; cursor:url('fork-cursor.svg') 8 2,crosshair; }
     .panel { position:fixed; top:24px; left:28px; right:28px; pointer-events:none; }
     .eyebrow { margin:0 0 8px; font-size:10px; color:var(--mint); letter-spacing:2px; text-shadow:2px 2px var(--ink); }
     .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; pointer-events:auto; }
@@ -35,7 +35,7 @@
     input[type=file] { width:100%; min-width:0; color:#c1d2dc; font:10px Galmuri,monospace; }
     input::file-selector-button { padding:5px; margin-right:6px; font-size:10px; box-shadow:none; }
     .camera-preview { position:fixed; bottom:24px; left:28px; margin:0; display:flex; align-items:center; gap:16px; padding:20px 16px 14px; max-width:calc(100vw - 56px); background:#192941f5; border:2px solid #8bb6c5; box-shadow:4px 4px #0a152b,inset 0 0 0 3px #101a32; }
-    .camera-preview::before { content:'PLAYER 01 / RUDOLPH'; position:absolute; top:-10px; left:12px; padding:0 7px; color:#f8e6a7; background:#192941; font-size:10px; letter-spacing:1px; }
+    .camera-preview::before { content:'PLAYER 01 / SNOWMAN'; position:absolute; top:-10px; left:12px; padding:0 7px; color:#f8e6a7; background:#192941; font-size:10px; letter-spacing:1px; }
     .camera-orb { position:relative; display:grid; place-items:center; width:84px; height:84px; flex-shrink:0; border:2px solid #5b8399; background:#101b32; overflow:hidden; box-shadow:inset 0 0 0 3px #0a1428; }
     .camera-orb video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); visibility:hidden; image-rendering:pixelated; }
     .camera-orb.live video { visibility:visible; }
@@ -111,7 +111,7 @@
       { offsetX: -128, offsetY: 35, speed: .65 },
       { offsetX: -174, offsetY: -8, speed: .55 }
     ].map(p => ({ ...p, x: 0, y: 0 }));
-    const leaves = [];
+    const wrapping = [];
     const treeHooks = [], gifts = [];
     const giftCount = document.querySelector('#gift-count');
     let forestAsleep = true, biteTime = 0;
@@ -348,11 +348,12 @@
       const nearby=(clicked?[clicked]:available).filter(g=>{const p=giftPosition(g);return Math.hypot(p.x-mouth.x,p.y-mouth.y)<82;});
       nearby.sort((a,b)=>Math.hypot(a.x-mouth.x,a.y-mouth.y)-Math.hypot(b.x-mouth.x,b.y-mouth.y));
       if(!nearby[0]) {
-        if(point&&clicked)status.textContent='루돌프가 선물 가까이에 도착하면 다시 클릭해 주세요.';
+        if(point&&clicked)status.textContent='눈사람가 선물 가까이에 도착하면 다시 클릭해 주세요.';
         return false;
       }
       const gift=nearby[0],position=giftPosition(gift);
       gift.phase='flying';gift.flight=0;gift.fromX=position.x;gift.fromY=position.y;
+      spawnWrapping(position.x,position.y,gift.color);
       biteTime=.7;updateGiftCount();status.textContent='냠! 선물을 먹었어요. 불이 완전히 꺼졌다 켜지면 다시 나타나요.';
       return true;
     }
@@ -380,11 +381,12 @@
         let p=giftPosition(g),size=g.size;
         if(g.phase==='flying') {
           const t=1-Math.pow(1-g.flight,2);
-          p={x:g.fromX+(mouth.x-g.fromX)*t,y:g.fromY+(mouth.y-g.fromY)*t-Math.sin(t*Math.PI)*18};
+          const targetY = cameraStream && faceFeatures ? mouth.y + 20 : mouth.y;
+          p={x:g.fromX+(mouth.x-g.fromX)*t,y:g.fromY+(targetY-g.fromY)*t-Math.sin(t*Math.PI)*18};
           size*=1-g.flight*.85;
-        } else {
-          block(ctx,g.hookX,g.hookY,2,g.y-g.hookY,'#b8d5d3');
         }
+        ctx.globalAlpha=pointer.strength*giftLightAt(p);
+        if(g.phase==='hanging')block(ctx,g.hookX,g.hookY,2,g.y-g.hookY,'#b8d5d3');
         const x=p.x-size/2,y=p.y-size/2,u=Math.max(2,size/8);
         block(ctx,x-2,y-2,size+4,size+4,'#202c4c');
         block(ctx,x,y,size,size,['#d16c87','#65aa9b','#cdad65'][g.color]);
@@ -397,6 +399,12 @@
         }
       }
       ctx.restore();
+    }
+    function giftLightAt(p) {
+      const radius=w<650?160:220,d=Math.hypot(p.x-fairy.x,p.y-(fairy.y-48))/radius;
+      if(d<=.56)return 1;
+      if(d<.8)return 1-(d-.56)/.24*.62;
+      return Math.max(.09,.38-(d-.8)/.2*.29);
     }
     function lightForest() {
       if(pointer.strength===0)return;
@@ -428,65 +436,79 @@
       createGifts();
       pointer.x = fairy.x = w * .55; pointer.y = fairy.y = h * .5;
       companions.forEach(p => { p.x = fairy.x + p.offsetX * fairy.facing; p.y = fairy.y + p.offsetY; });
-      leaves.length = 0;
+      wrapping.length = 0;
       if (paused) draw(0);
     }
 
     function makeSprite(main, resting = true) {
       const sprite = document.createElement('canvas');sprite.width=36;sprite.height=70;
       const c=sprite.getContext('2d'),r=(x,y,w,h,color)=>{c.fillStyle=color;c.fillRect(x,y,w,h);};
-      const ink='#2b2946',tan='#d7ac7c',light='#f1d7a1',shade='#ad795f';
-      if(main) {
-        // Antlers and ears: intentionally chunky, hand-placed sprite pixels.
-        for(const side of [-1,1]) {
-          const x=side<0?8:26;
-          r(x,5,2,14,ink);r(x,5,1,12,'#b98259');
-          r(x+(side<0?-4:0),9,6,2,ink);r(x+(side<0?-4:1),9,5,1,'#d1a16a');
-          r(x+(side<0?1:-4),12,5,2,'#b98259');
+      const ink = '#2b2946';
+      if (main) {
+        // Snowball body, boots and mittens.
+        r(10,51,16,3,ink); r(7,54,22,8,ink); r(10,62,16,3,ink);
+        r(9,54,18,8,'#c2dfea'); r(11,53,14,7,'#f3faf4');
+        r(24,55,3,6,'#9bb9d4'); r(17,57,2,2,ink); r(17,61,2,2,ink);
+        r(4,54,5,5,ink); r(5,54,4,4,'#d55e77');
+        r(27,54,5,5,ink); r(27,54,4,4,'#d55e77');
+        r(13,63,3,5,'#accbdc'); r(21,63,3,5,'#accbdc');
+        r(12,67,5,2,ink); r(20,67,5,2,ink);
+
+        // Stepped rows form the round head and its snowy shading.
+        const rows = [[20,12,12],[22,8,20],[25,3,30],[28,0,36],[40,2,32],[45,4,28],[48,7,22],[52,11,14],[54,0,0]];
+        for (let i = 0; i < rows.length - 1; i++) {
+          const [y, x, width] = rows[i];
+          const height = rows[i + 1][0] - y;
+          r(x,y,width,height,ink);
+          r(x+1,y,width-2,height,y>=48?'#d6eaf0':'#f4faf5');
+          r(x+width-4,y,3,height,'#b3d1e3');
         }
-        r(4,19,8,5,ink);r(5,19,6,4,tan);r(6,20,4,2,'#cc8e80');
-        r(25,19,8,5,ink);r(26,19,6,4,tan);r(27,20,4,2,'#cc8e80');
-        const rows=[[18,12,12],[19,10,16],[21,9,18],[25,8,20],[30,7,22],[37,6,24],[47,7,22],[51,9,18],[53,12,12]];
-        for(let i=0;i<rows.length-1;i++) {
-          const [y,x,width]=rows[i],height=rows[i+1][0]-y;
-          r(x,y,width,height,ink);r(x+1,y,width-2,height,tan);r(x+width-4,y,3,height,shade);
-          if(y<35)r(x+2,y,2,height,light);
+
+        // Top hat and berry scarf.
+        r(11,9,16,13,ink); r(13,10,12,10,'#4b4366');
+        r(13,17,12,3,'#d55e77'); r(7,20,24,4,ink); r(8,20,22,2,'#615477');
+        r(11,53,14,3,'#d55e77'); r(21,55,4,6,'#bd4767'); r(21,59,4,2,'#e88a91');
+        r(7,39,3,2,'#edabb9'); r(26,39,3,2,'#edabb9');
+        if (resting) {
+          r(10,31,3,4,ink); r(10,31,1,1,'#fff9d9');
+          r(23,31,3,4,ink); r(23,31,1,1,'#fff9d9');
+          r(14,47,2,2,ink); r(16,49,4,2,ink); r(20,47,2,2,ink);
         }
-        r(12,53,12,1,ink);
-        // Simple tunic, mitten hands, short legs and dark boots.
-        r(12,54,12,9,ink);r(13,54,10,8,'#ad795f');r(14,55,7,5,tan);r(16,55,3,5,light);
-        r(9,56,4,4,ink);r(10,56,3,3,tan);r(24,56,4,4,ink);r(24,56,3,3,tan);
-        r(14,63,2,5,tan);r(21,63,2,5,tan);r(12,67,5,2,ink);r(20,67,5,2,ink);
-        if(resting) {
-          r(13,28,2,3,ink);r(13,28,1,1,'#fff2c7');
-          r(23,28,2,1,ink);r(22,29,2,1,ink);r(23,30,2,1,ink);
-          r(17,50,3,1,ink);
-        }
-        r(14,36,9,1,ink);r(12,37,13,2,ink);r(11,39,15,6,ink);r(12,45,13,2,ink);r(14,47,9,1,ink);
-        r(14,37,9,1,'#ef8d86');r(12,39,13,6,'#cf5269');r(13,45,11,1,'#a43b59');r(12,39,2,4,'#ef8d86');r(15,38,3,2,'#ffc0a0');r(23,40,2,4,'#ab3c58');
+        r(16,37,3,5,'#df763e'); r(17,37,3,2,'#ffbb62');
+        r(19,38,4,2,'#ec8b46'); r(23,39,2,1,'#ec8b46');
       } else {
-        r(17,11,2,3,'#ffe8a3');r(15,13,6,2,'#ffe8a3');r(17,15,2,2,'#f1ad70');
-        for(let tier=0;tier<3;tier++) {
-          const y=22+tier*9,half=5+tier*3;
-          for(let row=0;row<8;row++) {
-            const width=Math.min(half,2+Math.floor(row/2)*2);
-            r(18-width,y+row,width*2,1,ink);if(width>1)r(19-width,y+row,width*2-2,1,row<3?'#93c786':'#4f9b78');
+        r(15,48,6,8,ink);
+        r(16,49,4,6,'#ba8a64');
+        for (const [top, half, green] of [[37,15,'#4f9b78'],[28,12,'#72b587'],[19,9,'#a2cf8a']]) {
+          for (let step = 0; step < 4; step++) {
+            const width = Math.ceil(half * (step + 1) / 4);
+            const y = top + step * 3;
+            r(18-width,y,width*2,4,ink);
+            r(19-width,y+1,width*2-2,3,green);
           }
-          r(18-half,y+8,half*2,1,ink);r(19-half,y+7,half*2-2,1,'#2f6b66');
         }
-        r(15,20,6,3,'#a1d08e');r(14,24,8,7,ink);r(15,24,6,6,'#f2dbb0');
-        r(16,26,1,1,ink);r(19,26,1,1,ink);r(17,28,2,1,'#ac6b72');
-        r(12,37,2,2,'#f1b286');r(21,42,2,2,'#f1d188');r(15,47,2,2,'#e47d88');
-        r(14,49,2,5,'#f5dfb4');r(21,49,2,5,'#f5dfb4');r(12,54,4,2,ink);r(21,54,4,2,ink);
+        r(17,10,2,9,'#ffe8a3');
+        r(14,13,8,3,'#ffe8a3');
+        r(17,13,2,3,'#fff9d9');
+        r(13,33,10,9,ink);
+        r(12,35,12,5,ink);
+        r(14,34,8,7,'#ffe2bb');
+        r(13,36,10,3,'#ffe2bb');
+        r(15,35,1,2,ink);
+        r(20,35,1,2,ink);
+        r(14,38,1,1,'#ed9ea6');
+        r(21,38,1,1,'#ed9ea6');
+        r(17,39,2,1,'#a45d74');
       }
       return sprite;
     }
-    const rudolphRest = makeSprite(true), rudolphCamera = makeSprite(true, false), treeFairy = makeSprite(false);
+    const snowmanRest = makeSprite(true), snowmanCamera = makeSprite(true, false), treeFairy = makeSprite(false);
     function drawFairy(t, position, size, main = false) {
       const cell=main?3:2, x=Math.round(position.x/2)*2, y=Math.round((position.y+Math.sin(t*1.8)*2)/2)*2;
       const hasFeatures=main&&cameraStream&&faceFeatures;
       ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=pointer.strength;
       ctx.translate(x,y);
+      if (!main) ctx.scale(.7,.7);
       // Two-frame, stepped wings read as sprite animation even while hovering.
       const reach=Math.sin(t*4.2)>0?1:0;
       for(const side of [-1,1]) {
@@ -498,7 +520,7 @@
         }
         ctx.restore();
       }
-      const sprite=main?(hasFeatures?rudolphCamera:rudolphRest):treeFairy;
+      const sprite=main?(hasFeatures?snowmanCamera:snowmanRest):treeFairy;
       if(lightImage) {
         const iw=36*cell,ih=iw*lightImage.naturalHeight/lightImage.naturalWidth;
         ctx.drawImage(lightImage,-iw/2,-ih/2,iw,ih);
@@ -510,17 +532,36 @@
           ctx.drawImage(sprite,sx,63,5,7,(sx-18+stride)*cell,(9-Math.max(0,stride))*cell,5*cell,7*cell);
         }
       } else ctx.drawImage(sprite,-18*cell,-54*cell,36*cell,70*cell);
+      const opening=main&&(biteTime>0||(hasFeatures&&mouthOpen));
+      if (opening && hasFeatures) {
+        block(ctx,-40,-24,80,52,'#f4faf5');
+        block(ctx,-34,28,68,12,'#d6eaf0');
+        block(ctx,34,-22,6,50,'#b3d1e3');
+      } else if (opening) {
+        block(ctx,-24,-18,48,30,'#f4faf5');
+        block(ctx,-20,12,40,4,'#d6eaf0');
+        block(ctx,20,-16,4,28,'#b3d1e3');
+      }
       if(hasFeatures) {
-        for(const [name,cx,cy,width,maxHeight] of [['rightEye',-6,-25,2.8,2.1],['leftEye',6,-25,2.8,2.1],['mouth',0,-4,4.2,3.1]]) {
-          const part=faceFeatures[name],pw=Math.min(width*faceZoom,maxHeight/part.aspect)*3*size,ph=pw*part.aspect;
-          ctx.save();ctx.translate(cx*cell,cy*cell);ctx.scale(-1,1);ctx.drawImage(part.canvas,-pw/2,-ph/2,pw,ph);ctx.restore();
+        for (const [name, x, y] of [['rightEye',-27,-66],['leftEye',27,-66],['mouth',0,-12]]) {
+          const part = faceFeatures[name];
+          const isMouth = name === 'mouth';
+          const openMouth = isMouth && opening;
+          const width = Math.min(4.2 * faceZoom, (isMouth ? 3.1 : 3) / part.aspect) * 3 * size;
+          const pw = Math.min(openMouth ? 74 : 52, width * (openMouth ? 2.2 : 1.5));
+          const ph = Math.min(openMouth ? 58 : 26, width * part.aspect * (openMouth ? 2.7 : 1.5));
+          ctx.save();
+          ctx.translate(x, openMouth ? 8 : y);
+          ctx.scale(-1,1);
+          ctx.drawImage(part.canvas,-pw/2,-ph/2,pw,ph);
+          ctx.restore();
         }
-        // Restore the red sprite nose above all webcam patches.
-        ctx.drawImage(rudolphCamera,11,36,15,12,-7*cell,-18*cell,15*cell,12*cell);
+        // Keep the carrot nose above the webcam patches.
+        ctx.drawImage(snowmanCamera,16,37,9,5,-2*cell,-17*cell,9*cell,5*cell);
       }
       if(main&&!hasFeatures&&biteTime>0) {
-        block(ctx,-12,-16,24,14,'#30253e');block(ctx,-6,-6,12,4,'#ef9caa');
-        block(ctx,-9,-16,18,2,'#f2ddbc');
+        block(ctx,-21,-16,42,26,'#30253e');block(ctx,-12,3,24,7,'#ef9caa');
+        block(ctx,-18,-16,36,4,'#f2ddbc');
       }
       ctx.restore();
     }
@@ -569,7 +610,6 @@
         }
       }
       updateGifts(dt);
-      drawGifts();
       lightForest();
       ctx.globalAlpha = pointer.strength;
       ctx.globalCompositeOperation = 'screen';
@@ -593,25 +633,40 @@
         companions.forEach((p, i) => drawFairy(time + i + 1, p, .988));
       }
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      drawGifts();
       drawSnow();
-      drawLeaves(dt);
+      drawWrapping(dt);
       screen.drawImage(scene, 0, 0, canvas.width, canvas.height);
     }
 
-    function drawLeaves(dt) {
-      for (let i = leaves.length - 1; i >= 0; i--) {
-        const leaf = leaves[i]; leaf.life -= dt;
-        if (leaf.life <= 0) { leaves.splice(i, 1); continue; }
-        leaf.vy += dt * 24;
-        leaf.x += (leaf.vx + Math.sin(leaf.life * 3 + leaf.phase) * 22) * dt;
-        leaf.y += leaf.vy * dt; leaf.angle += leaf.spin * dt;
-        ctx.save(); ctx.globalAlpha = Math.min(1, leaf.life / .9);
-        ctx.translate(leaf.x, leaf.y); ctx.rotate(leaf.angle);
-        ctx.scale(leaf.size, leaf.size * (.65 + Math.sin(leaf.life * 4 + leaf.phase) * .25));
-        ctx.fillStyle = leaf.color; ctx.strokeStyle = '#d7e6ad'; ctx.lineWidth = .1;
-        ctx.beginPath(); ctx.moveTo(-1, 0); ctx.bezierCurveTo(-.3, -1, .7, -.65, 1, 0);
-        ctx.bezierCurveTo(.3, 1, -.7, .65, -1, 0); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(-1, 0); ctx.lineTo(1, 0); ctx.stroke(); ctx.restore();
+    function spawnWrapping(x,y,color=0) {
+      const colors=[['#e38fa7','#ffdba0'],['#8dceb3','#fff0af'],['#e6c77e','#ef9cb3']][color];
+      for(let i=0;i<12;i++)wrapping.push({
+        x,y,vx:(Math.random()-.5)*160,vy:-45-Math.random()*70,
+        life:1.4+Math.random()*.8,size:5+Math.random()*5,angle:Math.random()*Math.PI*2,
+        spin:(Math.random()-.5)*5,phase:Math.random()*Math.PI*2,color:colors[i%2],kind:i%3===0?'ribbon':'paper'
+      });
+      if(wrapping.length>120)wrapping.splice(0,wrapping.length-120);
+    }
+    function drawWrapping(dt) {
+      for(let i=wrapping.length-1;i>=0;i--) {
+        const piece=wrapping[i];piece.life-=dt;
+        if(piece.life<=0){wrapping.splice(i,1);continue;}
+        piece.vy+=dt*46;piece.vx*=Math.exp(-dt*.7);
+        piece.x+=(piece.vx+Math.sin(piece.life*5+piece.phase)*16)*dt;
+        piece.y+=piece.vy*dt;piece.angle+=piece.spin*dt;
+        ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=Math.min(1,piece.life/.7);
+        ctx.translate(Math.round(piece.x/2)*2,Math.round(piece.y/2)*2);ctx.rotate(piece.angle);
+        const fold=.3+Math.abs(Math.sin(piece.life*6+piece.phase))*.7;
+        ctx.scale(1,fold);const size=piece.size;
+        if(piece.kind==='ribbon') {
+          for(let segment=0;segment<5;segment++)block(ctx,(segment%2)*3,-size+segment*size*.4,3,size*.6,piece.color);
+        } else {
+          block(ctx,-size*.65,-size*.45,size*1.3,size*.9,piece.color);
+          block(ctx,-size*.65,-size*.45,size*.3,size*.9,'#fff0bd');
+          block(ctx,size*.2,-size*.45,size*.4,2,'#fff4d5');
+        }
+        ctx.restore();
       }
     }
 
@@ -625,12 +680,10 @@
     canvas.addEventListener('click', event => {
       if (paused) return;
       pointer.x = event.clientX; pointer.y = event.clientY; lastMove = performance.now();
+      let ate=false;
       if(cameraStream)status.textContent='웹캠 모드에서는 선물 가까이에서 입을 크게 벌려보세요.';
-      else {biteTime=.7;eatNearGift({x:event.clientX,y:event.clientY});}
-      for (let i = 0; i < 14; i++) {
-        leaves.push({ x: event.clientX, y: event.clientY, vx: (Math.random() - .5) * 130, vy: -35 - Math.random() * 65, life: 2.4 + Math.random() * 1.6, size: 5 + Math.random() * 5, angle: Math.random() * Math.PI * 2, spin: (Math.random() - .5) * 3, phase: Math.random() * Math.PI * 2, color: ['#8da765', '#b3bd79', '#688c63'][i % 3] });
-      }
-      if (leaves.length > 140) leaves.splice(0, leaves.length - 140);
+      else {biteTime=.7;ate=eatNearGift({x:event.clientX,y:event.clientY});}
+      if(!ate)spawnWrapping(event.clientX,event.clientY);
     });
     const leave = () => { lastMove = -Infinity; pointer.active = false; };
     canvas.addEventListener('pointerleave', leave); canvas.addEventListener('pointercancel', leave);
