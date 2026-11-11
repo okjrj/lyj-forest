@@ -33,6 +33,8 @@ const checks = `(() => {
   const assert=(condition,message)=>{if(!condition)throw Error(message);};
   cancelAnimationFrame(frame);paused=false;time=0;
   assert(gifts.length===(w<650?6:12),'Hanging gifts missing');
+  const originalCrunch=playCrunch;let crunchCalls=0;
+  playCrunch=()=>{crunchCalls++;return false;};
   resetGifts();forestAsleep=false;pointer.strength=1;lastMove=performance.now();
   const first=gifts[0];fairy.x=w-10;fairy.y=h-10;
   assert(!eatNearGift(giftPosition(first)),'Distant gift consumed');
@@ -40,6 +42,8 @@ const checks = `(() => {
   canvas.dispatchEvent(new MouseEvent('click',{clientX:first.x,clientY:first.y}));
   assert(first.phase==='flying'&&biteTime>0,'Click did not start eating animation');
   updateGifts(.5);assert(first.phase==='eaten','Gift did not disappear');
+  assert(crunchCalls===1,'Click eating did not trigger crunch');updateGifts(.5);
+  assert(crunchCalls===1,'An eaten gift replayed its crunch');
   assert(giftCount.textContent.includes('1 /'),'Counter did not update');
   paused=true;assert(!eatNearGift(),'Paused game consumed a gift');paused=false;
   const next=gifts.find(g=>g.phase==='hanging');fairy.x=next.x;fairy.y=next.y+12;
@@ -58,6 +62,7 @@ const checks = `(() => {
   assert(next.phase==='flying'&&!mouthArmed,'Open mouth did not consume nearby gift');
   updateGifts(.5);const eaten=gifts.filter(g=>g.phase==='eaten').length;updateGifts(.5);
   assert(gifts.filter(g=>g.phase!=='hanging').length===eaten,'Held-open mouth consumed repeatedly');
+  assert(crunchCalls===2,'Webcam eating did not trigger exactly one crunch');
   points[13].y=.49;points[14].y=.51;updateMouthGesture(points,performance.now(),640,480);
   assert(!mouthOpen&&mouthArmed,'Closing mouth did not rearm');
   Object.defineProperty(video,'readyState',{value:2,configurable:true});
@@ -79,8 +84,16 @@ const checks = `(() => {
   lastMove=performance.now();draw(.016);
   assert(gifts.every(g=>g.phase==='hanging'),'Gifts did not respawn on next awakening');
   assert(!ctx.imageSmoothingEnabled&&!screen.imageSmoothingEnabled,'Pixel scaling lost');
+  playCrunch=originalCrunch;
+  const offline=new OfflineAudioContext(1,24000,48000),sample=buildCrunchBuffer(offline).getChannelData(0);
+  let power=0,peak=0;for(const v of sample){power+=v*v;peak=Math.max(peak,Math.abs(v));}
+  assert(Math.sqrt(power/sample.length)>.04&&peak<=.851,'Crunch waveform is silent or clipped: rms='+Math.sqrt(power/sample.length)+', peak='+peak);
+  document.querySelector('#sound-toggle').click();
+  assert(!soundEnabled&&document.querySelector('#sound-toggle').getAttribute('aria-pressed')==='false','Mute control failed');
+  assert(!playCrunch(),'Muted crunch was allowed to play');
+  document.querySelector('#sound-toggle').click();assert(soundEnabled,'Sound re-enable failed');
   paused=true;cancelAnimationFrame(frame);pointer.strength=1;lastMove=performance.now();draw(0);
-  return 'PASS '+w+'x'+h+': proximity/click, eating animation, webcam-only gesture, one bite per opening, face loss, spotlight, dark-cycle respawn';
+  return 'PASS '+w+'x'+h+': proximity/click, eating animation, webcam-only gesture, one bite per opening, face loss, spotlight, dark-cycle respawn, click/webcam crunch, audio waveform, mute toggle';
 })()`;
 (async () => {
   try {

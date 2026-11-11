@@ -91,7 +91,7 @@
     </figcaption>
   </figure>
   <p id="status" role="status" aria-live="polite"></p>
-  <div class="controls"><button id="pause" type="button" aria-pressed="false">움직임 멈추기</button><button id="fullscreen" type="button">전체 화면</button></div>
+  <div class="controls"><button id="sound-toggle" type="button" aria-pressed="true">효과음 켜짐</button><button id="pause" type="button" aria-pressed="false">움직임 멈추기</button><button id="fullscreen" type="button">전체 화면</button></div>
   <div class="scene-credit"><strong>FROZEN FOREST</strong>손짓으로 여는 AI 세계 · 이윤진</div>
   <script>
     'use strict';
@@ -115,6 +115,53 @@
     const treeHooks = [], gifts = [];
     const giftCount = document.querySelector('#gift-count');
     let forestAsleep = true, biteTime = 0;
+    let soundEnabled = true, audioContext = null, audioOutput = null, crunchBuffer = null;
+    function buildCrunchBuffer(context) {
+      const buffer=context.createBuffer(1,Math.ceil(context.sampleRate*.52),context.sampleRate);
+      const data=buffer.getChannelData(0);let seed=9173,filtered=0;
+      for(let i=0;i<data.length;i++) {
+        const t=i/context.sampleRate;let value=0;
+        for(const start of [0,.16,.32]) {
+          const age=t-start;if(age<0||age>.13)continue;
+          seed=(seed*16807)%2147483647;const noise=(seed/2147483647)*2-1;
+          filtered=filtered*.38+noise*.62;
+          const envelope=Math.min(1,age/.004)*Math.exp(-age/ .032);
+          const crack=Math.abs(noise)>.88?noise*.65:0;
+          const chomp=Math.sin(2*Math.PI*(240*age+7*(1-Math.exp(-age/ .018))));
+          value+=(filtered*.55+crack+chomp*.18)*envelope;
+        }
+        data[i]=Math.max(-.85,Math.min(.85,value));
+      }
+      return buffer;
+    }
+    function unlockAudio() {
+      if(!soundEnabled)return;
+      try {
+        if(!audioContext) {
+          const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;
+          audioContext=new Audio();audioOutput=audioContext.createGain();
+          audioOutput.gain.value=.4;audioOutput.connect(audioContext.destination);
+          crunchBuffer=buildCrunchBuffer(audioContext);
+        }
+        if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});
+      } catch { /* Sound is optional; eating still works when audio is unavailable. */ }
+    }
+    function playCrunch() {
+      if(!soundEnabled||!audioContext||audioContext.state!=='running'||!crunchBuffer)return false;
+      try {
+        const source=audioContext.createBufferSource();source.buffer=crunchBuffer;
+        source.connect(audioOutput);source.onended=()=>source.disconnect();source.start();return true;
+      } catch { return false; }
+    }
+    // Unlock audio during a real interaction, including the webcam-on button.
+    document.addEventListener('pointerdown',unlockAudio,{capture:true});
+    document.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' ')unlockAudio();},{capture:true});
+    document.querySelector('#sound-toggle').addEventListener('click',event=>{
+      soundEnabled=!soundEnabled;unlockAudio();
+      if(audioOutput)audioOutput.gain.setValueAtTime(soundEnabled?.4:0,audioContext.currentTime);
+      event.currentTarget.setAttribute('aria-pressed',String(soundEnabled));
+      event.currentTarget.textContent=soundEnabled?'효과음 켜짐':'효과음 꺼짐';
+    });
     let mouthOpen = false, mouthArmed = true, mouthOpenedAt = 0;
     let lastMove = -Infinity, forestImage = null, lightImage = null, cameraStream = null, cameraRequest = 0;
     const video = document.querySelector('#camera-video'); video.muted = true; video.playsInline = true;
@@ -319,7 +366,7 @@
       biteTime=Math.max(0,biteTime-dt);
       for(const g of gifts)if(g.phase==='flying') {
         g.flight=Math.min(1,g.flight+dt/.45);
-        if(g.flight>=1)g.phase='eaten';
+        if(g.flight>=1){g.phase='eaten';playCrunch();}
       }
       if(!paused&&cameraStream&&faceFeatures&&mouthOpen&&mouthArmed&&performance.now()-mouthOpenedAt>=120) {
         if(eatNearGift())mouthArmed=false;
