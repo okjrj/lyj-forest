@@ -1,6 +1,6 @@
 # 숲 속의 요정
 
-이윤진 — 손짓으로 여는 AI 세계 · **v1.0.2**
+이윤진 — 손짓으로 여는 AI 세계 · **v1.0.3**
 
 **[🌲 forest.html 실행하기](https://okjrj.github.io/lyj-forest/forest.html)**
 

@@ -108,6 +108,18 @@ const checks = `(() => {
   lastMove=performance.now();draw(.016);
   assert(gifts.every(g=>g.phase==='hanging'),'Gifts did not respawn on next awakening');
   assert(!ctx.imageSmoothingEnabled&&!screen.imageSmoothingEnabled,'Pixel scaling lost');
+  const originalSuccess=playSuccess;
+  let successSounds=0;
+  playSuccess=()=>{successSounds++;};
+  for(const gift of gifts)gift.phase='eaten';
+  gifts[0].phase='flying';gifts[0].flight=0;
+  updateGifts(.2);
+  assert(!successDialog.open&&successSounds===0,'Success triggered before the last gift was eaten');
+  updateGifts(.3);updateGifts(.1);
+  assert(successDialog.open&&successSounds===1,'Finishing the round did not trigger one success screen and sound');
+  document.querySelector('#play-again').click();
+  assert(!successDialog.open&&gifts.every(gift=>gift.phase==='hanging'),'Replay did not reset the round');
+  playSuccess=originalSuccess;
   playCrunch=originalCrunch;
   const offline=new OfflineAudioContext(1,24000,48000),sample=buildCrunchBuffer(offline).getChannelData(0);
   let power=0,peak=0;for(const v of sample){power+=v*v;peak=Math.max(peak,Math.abs(v));}
