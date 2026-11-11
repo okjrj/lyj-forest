@@ -85,10 +85,22 @@
     }
     .success-spark { display:inline-block; color:#ffe29a; font-size:22px; animation:success-twinkle .8s steps(2,end) 3; }
     .success-spark:last-child { animation-delay:.2s; }
+    .success-art { display:flex; justify-content:center; align-items:center; gap:10px; }
+    .success-santa { position:relative; width:96px; height:96px; }
+    .success-santa canvas { width:96px; height:96px; image-rendering:pixelated; cursor:inherit; }
+    .success-santa::before, .success-santa::after {
+      content:''; position:absolute; top:50%; left:29%; width:4px; height:8px;
+      background:#82dcff; box-shadow:2px 2px #357ca9;
+    }
+    .success-santa::after { left:67%; }
+    #success-dialog[open] .success-santa::before { animation:santa-tear .9s steps(5,end) infinite; }
+    #success-dialog[open] .success-santa::after { animation:santa-tear .9s steps(5,end) .35s infinite; }
+    @keyframes santa-tear { to { transform:translateY(25px); opacity:0; } }
     @keyframes success-pop { from { opacity:0; transform:translateY(12px) scale(.92); } to { opacity:1; transform:none; } }
     @keyframes success-twinkle { 50% { opacity:.3; transform:translateY(-7px); } }
     @media(prefers-reduced-motion:reduce) {
       #success-dialog[open], .success-spark { animation:none; }
+      #success-dialog[open] .success-santa::before, #success-dialog[open] .success-santa::after { animation:none; }
     }
   </style>
 </head>
@@ -119,7 +131,12 @@
   <div class="controls"><button id="sound-toggle" type="button" aria-pressed="true">효과음 켜짐</button><button id="pause" type="button" aria-pressed="false">움직임 멈추기</button><button id="fullscreen" type="button">전체 화면</button></div>
   <div class="scene-credit"><strong>FROZEN FOREST</strong>손짓으로 여는 AI 세계 · 이윤진</div>
   <dialog id="success-dialog" aria-labelledby="success-title" aria-describedby="success-message">
-    <div aria-hidden="true"><span class="success-spark">✦</span><span class="success-gift"></span><span class="success-spark">✧</span></div>
+    <div class="success-art">
+      <span class="success-spark" aria-hidden="true">✦</span>
+      <span class="success-santa" role="img" aria-label="눈물을 흘리는 산타"><canvas id="success-santa-sprite" width="24" height="24" aria-hidden="true"></canvas></span>
+      <span class="success-gift" aria-hidden="true"></span>
+      <span class="success-spark" aria-hidden="true">✧</span>
+    </div>
     <h2 id="success-title">성공! 당신은 선물 도둑.</h2>
     <p id="success-message">이제 아이들은 선물을 받을 수 없다.</p>
     <button id="play-again" type="button" autofocus>다시 플레이</button>
@@ -146,6 +163,30 @@
     const treeHooks = [], gifts = [];
     const giftCount = document.querySelector('#gift-count');
     const successDialog = document.querySelector('#success-dialog');
+    {
+      const santa = document.querySelector('#success-santa-sprite').getContext('2d');
+      const pixel = (x, y, width, height, color) => {
+        santa.fillStyle = color;
+        santa.fillRect(x, y, width, height);
+      };
+      // Stepped hat, peach cheeks and a curled white beard.
+      pixel(5,4,14,17,'#28304d');
+      pixel(7,2,9,2,'#c13d5f');
+      pixel(5,4,13,5,'#d94f70');
+      pixel(15,4,5,3,'#c13d5f');
+      pixel(19,5,4,4,'#eff6ef');
+      pixel(4,8,16,3,'#eff6ef');
+      pixel(6,11,12,6,'#ffc7a0');
+      pixel(5,16,14,4,'#eff6ef');
+      pixel(7,20,10,2,'#d1e3ee');
+      pixel(10,22,4,1,'#eff6ef');
+      pixel(7,12,3,1,'#42415d');
+      pixel(14,12,3,1,'#42415d');
+      pixel(6,14,3,1,'#ed889a');
+      pixel(15,14,3,1,'#ed889a');
+      pixel(10,14,4,2,'#eea487');
+      pixel(11,18,2,2,'#614258');
+    }
     document.querySelector('#play-again').addEventListener('click', () => {
       resetGifts();
       forestAsleep = false;
@@ -361,11 +402,12 @@
       const previous=gifts.map(g=>g.phase==='eaten'||g.phase==='flying');
       gifts.length=0;
       const count=w<650?6:12,used=new Set();
+      const kinds = ['box','cake','candy','box','bear','box'];
       for(let i=0;i<count;i++) {
         const target={x:w*(.1+(i%6)*.16),y:h*(i<6?.34:.55)};
         const hook=treeHooks.filter(p=>!used.has(p)).sort((a,b)=>Math.hypot(a.x-target.x,a.y-target.y)-Math.hypot(b.x-target.x,b.y-target.y))[0];
         if(!hook)continue;used.add(hook);
-        gifts.push({hookX:hook.x,hookY:hook.y,x:hook.x,y:hook.y+30,size:w<650?24:28,color:i%3,phase:previous[i]?'eaten':'hanging',flight:0});
+        gifts.push({hookX:hook.x,hookY:hook.y,x:hook.x,y:hook.y+30,size:w<650?24:28,color:i%3,kind:kinds[i%kinds.length],phase:previous[i]?'eaten':'hanging',flight:0});
       }
       updateGiftCount();
     }
@@ -437,6 +479,59 @@
         if(eatNearGift())mouthArmed=false;
       }
     }
+    function drawChristmasGift(kind, x, y, size) {
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.scale(size/16,size/16);
+      const rect = (left, top, width, height, color) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(left,top,width,height);
+      };
+      const outline = '#202c4c';
+      if (kind === 'cake') {
+        rect(0,12,16,3,outline);
+        rect(1,12,14,2,'#b6e0ef');
+        rect(2,5,12,8,outline);
+        rect(3,6,10,6,'#eeb984');
+        rect(3,6,10,2,'#fff3d6');
+        rect(4,8,2,1,'#fff3d6');
+        rect(9,8,2,1,'#fff3d6');
+        rect(3,10,10,1,'#d95375');
+        rect(6,2,4,4,'#cf4962');
+        rect(7,1,2,1,'#79be8c');
+        rect(7,3,1,1,'#ff9aab');
+      } else if (kind === 'candy') {
+        rect(4,1,8,2,outline);
+        rect(2,3,5,5,outline);
+        rect(9,3,5,12,outline);
+        rect(4,2,8,3,'#fff3df');
+        rect(3,4,3,3,'#fff3df');
+        rect(10,4,3,10,'#fff3df');
+        rect(6,2,2,3,'#d9506a');
+        rect(3,5,3,2,'#d9506a');
+        rect(10,5,3,2,'#d9506a');
+        rect(10,9,3,2,'#d9506a');
+        rect(10,13,3,1,'#d9506a');
+      } else {
+        rect(4,7,8,8,outline);
+        rect(2,10,12,4,outline);
+        rect(3,11,10,2,'#b87856');
+        rect(5,8,6,6,'#d69b70');
+        rect(2,1,4,4,outline);
+        rect(10,1,4,4,outline);
+        rect(3,2,2,2,'#da9b78');
+        rect(11,2,2,2,'#da9b78');
+        rect(3,3,10,7,outline);
+        rect(4,4,8,5,'#e5ad7e');
+        rect(5,5,1,1,outline);
+        rect(10,5,1,1,outline);
+        rect(6,7,4,2,'#ffe0b2');
+        rect(7,7,2,1,'#784737');
+        rect(4,10,8,2,'#bf4f66');
+        rect(9,11,2,3,'#df6b7a');
+      }
+      ctx.restore();
+    }
     function drawGifts() {
       ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=pointer.strength;
       const mouth=mouthPosition();
@@ -452,12 +547,16 @@
         ctx.globalAlpha=pointer.strength*giftLightAt(p);
         if(g.phase==='hanging')block(ctx,g.hookX,g.hookY,2,g.y-g.hookY,'#b8d5d3');
         const x=p.x-size/2,y=p.y-size/2,u=Math.max(2,size/8);
-        block(ctx,x-2,y-2,size+4,size+4,'#202c4c');
-        block(ctx,x,y,size,size,['#d16c87','#65aa9b','#cdad65'][g.color]);
-        block(ctx,x,y,size,u,['#ed9eb1','#a2d7b5','#f1d698'][g.color]);
-        block(ctx,p.x-u/2,y,u,size,'#ffefac');block(ctx,x,p.y-u/2,size,u,'#ffefac');
-        block(ctx,p.x-u*2,y-u*2,u*2,u,'#ffefac');block(ctx,p.x+u,y-u*2,u*2,u,'#ffefac');
-        block(ctx,p.x-u,y-u,u*3,u,'#ffefac');
+        if (g.kind !== 'box') {
+          drawChristmasGift(g.kind,x,y,size);
+        } else {
+          block(ctx,x-2,y-2,size+4,size+4,'#202c4c');
+          block(ctx,x,y,size,size,['#d16c87','#65aa9b','#cdad65'][g.color]);
+          block(ctx,x,y,size,u,['#ed9eb1','#a2d7b5','#f1d698'][g.color]);
+          block(ctx,p.x-u/2,y,u,size,'#ffefac');block(ctx,x,p.y-u/2,size,u,'#ffefac');
+          block(ctx,p.x-u*2,y-u*2,u*2,u,'#ffefac');block(ctx,p.x+u,y-u*2,u*2,u,'#ffefac');
+          block(ctx,p.x-u,y-u,u*3,u,'#ffefac');
+        }
         if(g.phase==='hanging'&&Math.hypot(p.x-mouth.x,p.y-mouth.y)<82) {
           pixelStar(ctx,p.x+size*.8,p.y-size*.6,2,'#fff1b2');
         }

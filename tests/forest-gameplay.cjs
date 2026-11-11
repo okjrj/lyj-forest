@@ -75,7 +75,7 @@ const checks = `(() => {
   assert(!cameraStream&&!mouthOpen,'Camera stop did not clear gesture');
   fairy.x=w/2;fairy.y=h/2;pointer.x=fairy.x;pointer.y=fairy.y;pointer.strength=1;
   const overlap=gifts.find(g=>g.phase==='hanging'),originalGift={...overlap};
-  overlap.x=fairy.x;overlap.y=fairy.y-36;overlap.color=1;
+  overlap.x=fairy.x;overlap.y=fairy.y-36;overlap.color=1;overlap.kind='box';
   wrapping.length=0;draw(0);
   const box=giftPosition(overlap),front=ctx.getImageData(Math.floor((box.x-6)/pixelSize),Math.floor((box.y-6)/pixelSize),1,1).data;
   assert(front[1]>front[0]+25,'Gift behind the snowman sprite');
